@@ -1,0 +1,42 @@
+{
+  "name": "ecs-card-writer",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "src/main.js",
+  "description": "Cross-platform writer for the serial Baby Lock Palette ECS embroidery card device",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --library=../Designs",
+    "test": "node --test",
+    "dist:mac": "electron-builder --mac"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "electron": "44.3.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.stitchingood.ecs-card-writer",
+    "productName": "Stitchin' Good ECS Card Writer",
+    "files": [
+      "src/**/*",
+      "ui/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ]
+    }
+  }
+}

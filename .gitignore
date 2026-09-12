@@ -1,0 +1,15 @@
+# Hardware captures may contain user or commercial embroidery designs.
+captures/
+
+# User-owned/commercial design library. Never publish source embroidery files.
+Designs/
+
+# Local installation media and private development material.
+*.iso
+.secrets/
+
+# Future desktop dependencies and build artifacts.
+node_modules/
+app/node_modules/
+app/dist/
+app/out/

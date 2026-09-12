@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob: data:; script-src 'self'; style-src 'self'">
+  <title>Stitchin' Good ECS Card Writer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="masthead">
+    <div>
+      <p class="eyebrow">Baby Lock / Brother</p>
+      <h1>ECS Design Library</h1>
+      <p class="subtitle">Browse locally. Select confidently. Transfer safely.</p>
+    </div>
+    <div class="library-stat">
+      <strong id="library-count" aria-live="polite">Choose a design folder</strong>
+      <span id="library-path"></span>
+      <button id="choose-folder" class="choose-folder" type="button">Choose folder…</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="controls" aria-label="Search and filters">
+      <label class="search-field">
+        <span>Search designs</span>
+        <input id="search" type="search" placeholder="Try moon, Halloween, flowers…" autocomplete="off">
+      </label>
+      <label>
+        <span>Collection</span>
+        <select id="folder"><option value="">All collections</option></select>
+      </label>
+      <label>
+        <span>Compatibility</span>
+        <select id="compatibility">
+          <option value="all">All designs</option>
+          <option value="supported">Ready for ECS</option>
+          <option value="unsupported">Needs attention</option>
+        </select>
+      </label>
+      <label>
+        <span>Sort</span>
+        <select id="sort">
+          <option value="name">Name</option>
+          <option value="folder">Collection</option>
+          <option value="stitches">Stitches</option>
+          <option value="colors">Colors</option>
+          <option value="cardSize">Card space</option>
+        </select>
+      </label>
+    </section>
+
+    <div class="results-heading">
+      <p id="result-count" aria-live="polite">Loading designs…</p>
+      <p class="local-note">Offline desktop library · files stay on this computer.</p>
+    </div>
+    <section id="design-grid" class="design-grid" aria-label="Design results"></section>
+  </main>
+
+  <aside class="selection-tray" aria-label="Selected designs">
+    <div>
+      <span class="tray-label">Selected for card</span>
+      <strong id="selection-count">0 designs</strong>
+      <span id="selection-size">0 bytes of design data</span>
+    </div>
+    <div class="tray-actions">
+      <button id="clear-selection" class="secondary" type="button" disabled>Clear</button>
+      <button id="review-transfer" type="button" disabled>Review transfer</button>
+    </div>
+    <p class="development-note">Transfer remains locked until complete card-image validation passes.</p>
+  </aside>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

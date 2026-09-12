@@ -1,0 +1,42 @@
+{
+  "description": "Golden ECS card captured after Palette wrote three user-confirmed designs",
+  "capture": {
+    "relativePath": "captures/20260912T002646Z/card.img",
+    "bytes": 131072,
+    "sha256": "e97ac9361e09061b10a10646475c6a1b4a01d98f662729d4f27932505f509c99",
+    "rawCardStatus": "0x21",
+    "blockSize": 128,
+    "blockCount": 1024,
+    "terminalAckReceived": true
+  },
+  "confirmation": {
+    "status": "confirmed-by-user",
+    "date": "2026-09-11"
+  },
+  "designs": [
+    {
+      "relativePath": "Designs/OeSDVolume1/11018 By the Sea 2/WL313Octopus.pes",
+      "bytes": 62582,
+      "sha256": "46c7a23a882d3ed6caa8f26c02ce4b6878f99daf7bfe19159a11e0231f986839",
+      "cardOrder": 1,
+      "cardDataOffset": 16384,
+      "cardDataBytes": 21515
+    },
+    {
+      "relativePath": "Designs/OeSDVolume1/11009 Holiday 4/H195KittyOnJackO'Lantern.pes",
+      "bytes": 91782,
+      "sha256": "7ead3ca357c4ca6a28ac2998239114718f3ee874253ff5bbf80ae28deb4eda1f",
+      "cardOrder": 2,
+      "cardDataOffset": 37899,
+      "cardDataBytes": 32275
+    },
+    {
+      "relativePath": "Designs/OeSDVolume1/11009 Holiday 4/H197TrickOrTreatSkeleton.pes",
+      "bytes": 34662,
+      "sha256": "cda35d2c6111dcbcfd617023ecb077939fd3d3807791da3b266832dfcd6fe2ce",
+      "cardOrder": 3,
+      "cardDataOffset": 70174,
+      "cardDataBytes": 12223
+    }
+  ]
+}

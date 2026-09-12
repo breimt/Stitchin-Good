@@ -1,0 +1,25 @@
+name: Build macOS desktop app
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run dist:mac -- --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stitchin-good-macos-unsigned
+          path: app/dist/*.dmg
+          if-no-files-found: error
