@@ -40,3 +40,14 @@ git check-ignore Designs captures PALETTE_V3.iso PALETTE_V5.iso
 The repository uses a dedicated SSH deploy key through its local Git configuration.
 Only the `.pub` value belongs in GitHub's repository settings. Never copy the private
 key into this workspace, documentation, an issue, or a commit.
+
+`main` tracks `origin/main` at <https://github.com/breimt/Stitchin-Good>. The current
+automation key is intentionally passphrase-free so unattended Git pushes work, and
+its GitHub deploy-key permission is limited to this repository with write access.
+
+## Session handoff
+
+Keep [`../CODEX_HANDOFF.md`](../CODEX_HANDOFF.md) current before ending a hardware or
+reverse-engineering session. It is the authoritative restart point for the prompt
+"where did we leave off?" and records safety constraints, verified findings, and the
+next implementation task without checking in ignored designs or raw card images.

@@ -1,9 +1,37 @@
-# Baby Lock Palette / ECS recovery handoff
+# Stitchin' Good / ECS card-writer handoff
 
 For the design-to-PES production and quality process, see
 [`EMBROIDERY_DESIGN_GUIDE.md`](EMBROIDERY_DESIGN_GUIDE.md).
 
 Last worked: 2026-09-11 (America/Chicago)
+
+## Resume here next session
+
+When the user asks **"where did we leave off?"**, read this file first, then verify
+the live checkout with `git status --short`, `git log -1 --oneline`, and `npm test`
+from `app/`.
+
+The repository is published at <https://github.com/breimt/Stitchin-Good> and local
+`main` tracks `origin/main`. The passphrase-free repository deploy key is installed
+outside the workspace as
+`C:\Users\Tony\.ssh\stitchin_good_deploy_ed25519_v2`; its public half is registered
+on GitHub with write access. The earlier encrypted key was deleted both locally and
+from GitHub. Never commit or print the private key.
+
+The immediate engineering task is to finish the card-image builder around the
+already byte-exact PES v1 design blobs. Recover and test the directory, pointer,
+color/menu, padding, and trailer records from the existing ignored golden capture.
+The builder must compact selected designs into sequential placements so fragmented
+free space is usable in aggregate. Do not preserve holes from the old card layout,
+and reject the selection only when its compacted total exceeds capacity. Keep all
+physical writes disabled until a complete generated image matches the captured image
+and passes independent structural validation.
+
+After that, connect the read-only hardware path to the desktop workflow, implement
+the serial transport behind the platform-independent protocol layer, and only then
+add guarded erase/write/read-back verification. Palette is not part of this workflow
+and must not be launched for test writes. The card was last reported inserted in the
+ECS writer on COM3, but re-detect device and card state at the start of a new session.
 
 ## 2026-09-11 update
 
@@ -52,12 +80,12 @@ Last worked: 2026-09-11 (America/Chicago)
 - The design library now runs as a standalone Electron desktop application, not a
   browser or localhost app. It has a native folder picker, offline indexing, previews,
   metadata, search/filter/sort, and multi-selection. Electron 44.3.0 and
-  electron-builder 26.15.3 are pinned in `app/package-lock.json`; all 18 tests pass.
+  electron-builder 26.15.3 are pinned in `app/package-lock.json`; all 19 tests pass.
 - The workspace is now an independent Git repository with remote
   `git@github.com:breimt/Stitchin-Good.git`. `Designs/`, `captures/`, and `*.iso` are
-  ignored. A dedicated deploy key was created outside the repository at
-  `C:\Users\Tony\.ssh\stitchin_good_deploy_ed25519` and bound through local Git
-  configuration; GitHub must still receive its public key with write access.
+  ignored. A dedicated passphrase-free deploy key is bound through local Git
+  configuration, registered on GitHub with write access, and has successfully pushed
+  `main`. The obsolete encrypted key was removed.
 
 ## Goal
 

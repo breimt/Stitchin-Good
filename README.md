@@ -17,6 +17,8 @@ Windows is the reverse-engineering and hardware-test environment. The finished a
 must run on current Intel and Apple-silicon macOS without Palette, Windows, or a
 virtual machine.
 
+Source repository: <https://github.com/breimt/Stitchin-Good>
+
 ## Current status
 
 - The Windows Palette 3 -> serial ECS -> rewritable card path has completed a real
@@ -35,8 +37,13 @@ virtual machine.
 - A standalone Electron desktop shell now provides native folder selection, offline
   recursive indexing, PEC thumbnails, metadata, search, collection/compatibility
   filters, sorting, and persistent multi-selection. It does not run a web server.
+- Selection planning compacts designs into sequential card placements, so aggregate
+  free capacity remains usable even when the previous card layout was fragmented.
 - A dependency-free JavaScript implementation of the proven packet primitives is in
   [`app/src/protocol/ecs.js`](app/src/protocol/ecs.js), with tests.
+- The current automated suite passes 19 tests covering protocol packets, card status,
+  PES parsing, golden design blobs, search metadata, capacity checks, and compacted
+  placement.
 - The remaining critical unknown is the binary card-image layout that Palette builds
   from PES/PEC data, thumbnails, metadata, and menus. We will not perform writes from
   the replacement until generated images match captured Palette output and pass
