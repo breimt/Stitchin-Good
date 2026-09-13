@@ -3,6 +3,8 @@
 This repository is becoming a small, cross-platform replacement for the card-writing
 part of Baby Lock Palette 3. The target hardware is the older serial **Baby Lock
 Palette Model ECS** writer used with Brother/Baby Lock rewritable embroidery cards.
+The ECS itself is a powered DE-9 RS-232 device, not a USB/HID writer; modern computers
+reach that serial link through an OS-visible USB-to-RS-232 adapter.
 
 The intended user experience is deliberately focused:
 
@@ -48,7 +50,8 @@ Source repository: <https://github.com/breimt/Stitchin-Good>
 - The Electron shell has a cross-platform Web Serial chooser, read-only card-status
   probe, and full block reader at the conservative 9600-baud base speed. The reader
   recognizes the writer's terminal ACK rather than trusting the ambiguous `0x21`
-  capacity mapping. Guarded writing is not implemented yet.
+  status. Simulated guarded writing exists, but physical erase/write remains
+  deliberately disconnected from the UI.
 - Library thumbnails are rendered from the actual color-separated PEC stitch stream,
   not the low-resolution machine-menu icon. A click opens full metadata and the
   ordered, isolated preview/color/stitch count for every thread step.
@@ -106,12 +109,13 @@ npm run dev
 The eventual macOS `.app`/`.dmg` is built on macOS with `npm run dist:mac`; no browser,
 localhost service, Palette installation, or network connection is required at runtime.
 
-The generated Intel and Apple-silicon DMGs are self-contained: Electron and all
-application code are bundled inside the installed app. A Mac user does not install
-Node.js, npm, JavaScript packages, or a separate application runtime. Tagged builds
-and manual runs of `.github/workflows/build-macos.yml` produce both installers on a
-macOS runner. Developer ID signing/notarization credentials are still required before
-the final public handoff can install without Gatekeeper's unsigned-app warning.
+The generated universal DMG is self-contained: Electron and all application code are
+bundled inside the installed app, with native Intel and Apple-silicon executable
+slices. A Mac user does not install Node.js, npm, JavaScript packages, or a separate
+application runtime. The latest real macOS CI build and architecture verification
+passed. The PL2303GT adapter must still enumerate through macOS's serial device layer.
+Developer ID signing/notarization credentials are required before the final public
+handoff can install without Gatekeeper's unsigned-app warning.
 
 ## Safety
 
