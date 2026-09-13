@@ -5,6 +5,13 @@ For the design-to-PES production and quality process, see
 
 Last worked: 2026-09-13 (America/Chicago)
 
+## User communication requirement
+
+Every user-facing final response must end with a **What I need from you** section.
+Use that section to state the specific action, information, hardware, or decision
+needed from the user to keep the project moving. If nothing is currently required,
+say that explicitly and state when user involvement will next be needed.
+
 ## 2026-09-13 UI and Mac-transport update
 
 - Replaced the cream/green promotional interface with a compact VS Code-style dark
