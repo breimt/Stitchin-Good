@@ -12,6 +12,7 @@ import {
   verifyReconstructedDesign,
 } from "./formats/card-image.js";
 import { buildEcsDesignBlob, decodePecColorThumbnail, decodePecStitchPlan } from "./formats/pes-v1.js";
+import { findKnownEcsSerialAdapter } from "./protocol/serial-device.js";
 
 const sourceDirectory = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow;
@@ -380,11 +381,7 @@ function configureSerialAccess(window) {
   applicationSession.on("select-serial-port", (event, portList, webContents, callback) => {
     event.preventDefault();
     if (serialSelectionCallback) serialSelectionCallback("");
-    const ecsAdapter = portList.find((port) => {
-      const vendor = String(port.vendorId ?? "").toLowerCase();
-      const product = String(port.productId ?? "").toLowerCase();
-      return ["067b", "1659"].includes(vendor) && ["23a3", "9123"].includes(product);
-    });
+    const ecsAdapter = findKnownEcsSerialAdapter(portList);
     if (ecsAdapter) {
       callback(ecsAdapter.portId);
       return;

@@ -1,5 +1,6 @@
 import { buildCommand, COMMAND, ECS, parseCardStatusResponse } from "../src/protocol/ecs.js";
 import { readCardStorage } from "../src/protocol/ecs-transfer.js";
+import { identifyEcsSerialAdapter } from "../src/protocol/serial-device.js";
 
 const elements = {
   search: document.querySelector("#search"), folder: document.querySelector("#folder"),
@@ -654,7 +655,7 @@ async function connectWriter() {
     return;
   }
   elements.connectWriter.disabled = true;
-  updateWriter({ state: "", title: "Selecting device…", detail: "Looking for the Prolific adapter connected to the ECS." });
+  updateWriter({ state: "", title: "Selecting device…", detail: "Looking for the USB-to-RS-232 adapter connected to the ECS." });
   try {
     const port = await navigator.serial.requestPort();
     await openWriterPort(port);
@@ -669,10 +670,7 @@ async function detectGrantedWriter() {
   if (!("serial" in navigator) || serialPort) return;
   try {
     const ports = await navigator.serial.getPorts();
-    const known = ports.find((port) => {
-      const info = port.getInfo();
-      return info.usbVendorId === 0x067b && info.usbProductId === 0x23a3;
-    });
+    const known = ports.find((port) => identifyEcsSerialAdapter(port.getInfo()));
     if (known) await openWriterPort(known);
   } catch (error) {
     updateWriter({ state: "error", title: "Adapter detected", detail: `Could not open the ECS: ${error.message}` });

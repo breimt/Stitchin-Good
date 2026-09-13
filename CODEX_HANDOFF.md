@@ -98,7 +98,10 @@ validated and the ambiguous `0x21` status is resolved or independently proven sa
 - Extended the non-destructive PowerShell probe to take repeated status samples and
   optionally save a timestamped JSON report. A safety-contract test proves the script
   can emit only `CI`, `CV`, `CD`, and `CT` commands.
-- The suite now passes 54 tests.
+- Centralized cross-platform USB-to-RS-232 adapter identification. It normalizes the
+  numeric and string VID/PID shapes Electron can provide and recognizes the confirmed
+  PL2303GT in both the main and renderer processes.
+- The suite now passes 56 tests.
 
 ## Resume here next session
 
