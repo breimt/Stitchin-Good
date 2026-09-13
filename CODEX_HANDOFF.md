@@ -5,6 +5,47 @@ For the design-to-PES production and quality process, see
 
 Last worked: 2026-09-13 (America/Chicago)
 
+## Session-end checkpoint — 2026-09-13
+
+The user ended the session and said the next session will begin with **"where did
+we leave off?"** Resume from this document; do not restart discovery or repeat
+completed work.
+
+- Local `main` was clean and matched `origin/main` before this documentation-only
+  handoff update. The completed implementation checkpoint was commit `6374b7e`
+  (`Bound Mac build resource usage`).
+- `npm test` from `app/` passed all 58 tests immediately before this handoff.
+- GitHub Actions run
+  <https://github.com/breimt/Stitchin-Good/actions/runs/34783540027> passed the
+  complete universal-macOS release workflow: tests, DMG build, Intel and Apple
+  silicon slice verification, and artifact upload.
+- The replacement app has never sent `CE` (erase) or `CW` (write) to the physical
+  ECS. The inserted card's last verified raw image remains safely captured and
+  hash-addressed below.
+- The immediate hardware question is the current position of the card's physical
+  ON/OFF write-control slider. Raw `CT` status is repeatedly `0x21`; treat that as
+  write-disabled/ambiguous, never writable, until a user-attended comparison proves
+  otherwise.
+- On resume, first record `CT` samples in the card's current slider position using
+  the non-destructive probe. Then power down before the user changes or removes the
+  card, restore power, and record the other position. Do not ask for photographs.
+- If one position produces a known writable 128 KiB status, repeat a full read and
+  verify its SHA-256 against a newly saved exact backup. This evidence still does
+  not authorize an erase yet: `CE` response/timing and the full write/read-back path
+  remain unproven on hardware.
+- In parallel with that physical gate, the next code task is the arbitrary 128 KiB
+  P7H card-image builder. It needs zero-, one-, and two-design differential fixtures
+  to recover header/menu/pointer allocation semantics. Public 512 KiB `DRAGON3`
+  offsets must not be transplanted into this format.
+- The longer-term on-machine typeable-font goal remains research, not a completed
+  capability. Current evidence suggests embroidery-card alphabet products may be
+  collections of letter designs rather than firmware-installable keyboard fonts.
+  Keep that distinction explicit.
+- Runtime packaging is self-contained. The universal DMG bundles Electron and the
+  application with no Node, Python, Palette, Ink/Stitch, server, or network runtime
+  dependency. Apple signing/notarization and physical PL2303GT/ECS validation on a
+  recipient Mac are still outstanding external release gates.
+
 ## User communication requirement
 
 Every user-facing final response must end with a **What I need from you** section.
@@ -111,10 +152,10 @@ validated and the ambiguous `0x21` status is resolved or independently proven sa
 - Documented that public 512 KiB `DRAGON3`/official-card structures are a different
   image family from the confirmed 128 KiB `brother_embP7H` ECS capture. Do not copy
   their header offsets into the P7H builder without differential evidence.
-- GitHub Actions run `34783228937` successfully tested and built the universal macOS
+- GitHub Actions run `34783540027` successfully tested and built the universal macOS
   package, verified its Intel and Apple-silicon slices with `lipo`, and uploaded the
-  `stitchin-good-macos` artifact (226,510,371 bytes). This proves packaging on a real
-  macOS runner; physical PL2303GT/ECS communication still requires the recipient Mac.
+  `stitchin-good-macos` artifact. This proves packaging on a real macOS runner;
+  physical PL2303GT/ECS communication still requires the recipient Mac.
 - Mac packaging runs now cancel superseded builds on the same ref and retain large
   DMG artifacts for 14 days, limiting CI/storage waste during active development.
 - The suite now passes 58 tests.
