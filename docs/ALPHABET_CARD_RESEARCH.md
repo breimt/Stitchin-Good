@@ -61,3 +61,19 @@ Sources:
 No font-card generator should be claimed until genuine alphabet-card dumps prove the
 machine-facing schema. The ECS transport and generic card backup work can proceed
 independently in the meantime.
+
+Current manuals separate **Alphabet patterns** (built into the machine) from
+**Embroidery card** patterns, and Brother describes Card No. 1/SA298 as six alphabet
+fonts plus emblems without stating that it extends the machine's typing keyboard.
+The best current inference is therefore that commercial alphabet cards contain
+individually selectable letter designs, not installable typing fonts. This does not
+prove the requested behavior is impossible, but it raises the evidence bar: obtain a
+raw alphabet-card dump and confirm its actual ESe screen before designing a special
+schema. If no card can extend the keyboard, the closest technically honest fallback
+is app-side text composition that writes one combined design—not falsely presenting
+separate letters as an on-machine font.
+
+References:
+
+- <https://www.manualowl.com/m/Brother%20International/PE-300S/Manual/255754?page=19>
+- <https://www.manualslib.com/manual/453723/Baby-Lock-Esante-Bln.html?page=115>

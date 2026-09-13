@@ -101,6 +101,10 @@ validated and the ambiguous `0x21` status is resolved or independently proven sa
 - Centralized cross-platform USB-to-RS-232 adapter identification. It normalizes the
   numeric and string VID/PID shapes Electron can provide and recognizes the confirmed
   PL2303GT in both the main and renderer processes.
+- Manual research currently indicates machine Alphabet patterns and Embroidery card
+  patterns are separate modes; Card No. 1/SA298 may be individual letter designs,
+  not an installable typing font. `docs/ALPHABET_CARD_RESEARCH.md` records the
+  inference, evidence required to overturn it, and the honest app-side fallback.
 - The suite now passes 56 tests.
 
 ## Resume here next session
