@@ -111,6 +111,10 @@ validated and the ambiguous `0x21` status is resolved or independently proven sa
 - Documented that public 512 KiB `DRAGON3`/official-card structures are a different
   image family from the confirmed 128 KiB `brother_embP7H` ECS capture. Do not copy
   their header offsets into the P7H builder without differential evidence.
+- GitHub Actions run `34783228937` successfully tested and built the universal macOS
+  package, verified its Intel and Apple-silicon slices with `lipo`, and uploaded the
+  `stitchin-good-macos` artifact (226,510,371 bytes). This proves packaging on a real
+  macOS runner; physical PL2303GT/ECS communication still requires the recipient Mac.
 - The suite now passes 58 tests.
 
 ## Resume here next session
