@@ -77,12 +77,12 @@ test("writable status codes expose the capacities Palette 3 accepts", () => {
   assert.equal(decodeCardStatus(0x14).writable, false);
 });
 
-test("live CT response follows Palette's static status mapping", () => {
+test("live CT status remains write-disabled and defers capacity to the card read", () => {
   assert.deepEqual(parseCardStatusResponse(Uint8Array.of(0x41, 0x21, 0x62)), {
     rawStatus: 0x21,
-    kind: "read-only",
+    kind: "write-disabled",
     writable: false,
-    capacityBytes: 1024 * 1024,
+    capacityBytes: null,
   });
 });
 

@@ -56,7 +56,7 @@ Source repository: <https://github.com/breimt/Stitchin-Good>
   free capacity remains usable even when the previous card layout was fragmented.
 - A dependency-free JavaScript implementation of the proven packet primitives is in
   [`app/src/protocol/ecs.js`](app/src/protocol/ecs.js), with tests.
-- The current automated suite passes 45 tests covering protocol packets, card status,
+- The current automated suite passes 53 tests covering protocol packets, card status,
   PES parsing, golden design blobs, search metadata, capacity checks, and compacted
   placement, plus the desktop UI safety contract.
 - The captured image's design region and color trailer can now be parsed and exported.
@@ -78,6 +78,10 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the product plan,
 [`docs/CARD_IMAGE_FORMAT.md`](docs/CARD_IMAGE_FORMAT.md) for the image layout.
 The library/search product requirements are in
 [`docs/DESIGN_LIBRARY.md`](docs/DESIGN_LIBRARY.md).
+The exact physical target and safe `0x21` investigation are recorded in
+[`docs/HARDWARE_TARGET.md`](docs/HARDWARE_TARGET.md). The distinct on-machine font
+research path is in
+[`docs/ALPHABET_CARD_RESEARCH.md`](docs/ALPHABET_CARD_RESEARCH.md).
 
 Windows-only development helpers under `scripts/` can probe/capture the legacy
 hardware while the production implementation remains cross-platform.

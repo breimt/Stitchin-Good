@@ -38,7 +38,7 @@ test("authorization does not override ambiguous status 0x21", () => {
     userAuthorized: true,
   });
   assert.equal(result.allowed, false);
-  assert.deepEqual(result.blockers, ["status", "reported-capacity"]);
+  assert.deepEqual(result.blockers, ["status"]);
 });
 
 test("stale backup and malformed output independently block erase", () => {

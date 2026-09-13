@@ -41,7 +41,10 @@ const CARD_STATUS = new Map([
   [0x12, { kind: "read-only", writable: false, capacityBytes: 128 * 1024 }],
   [0x13, { kind: "read-only", writable: false, capacityBytes: 256 * 1024 }],
   [0x14, { kind: "read-only", writable: false, capacityBytes: 512 * 1024 }],
-  [0x21, { kind: "read-only", writable: false, capacityBytes: 1024 * 1024 }],
+  // A known-good 128 KiB rewritable card with a physical write switch returned
+  // 0x21 and then terminated CR after exactly 1,024 blocks. Treat it as a
+  // write-disabled/ambiguous presentation, never as a 1 MiB capacity claim.
+  [0x21, { kind: "write-disabled", writable: false, capacityBytes: null }],
   [0x22, { kind: "original", writable: true, capacityBytes: 128 * 1024 }],
   [0x23, { kind: "original", writable: true, capacityBytes: 256 * 1024 }],
   [0x31, { kind: "original", writable: true, capacityBytes: 512 * 1024 }],

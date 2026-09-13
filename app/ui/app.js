@@ -569,7 +569,7 @@ async function readInsertedCard() {
     };
     elements.cardKind.textContent = `${formatBytes(card.capacityBytes)} card · ${card.designCount} designs`;
     elements.transferNote.textContent = cardState.rawStatus === 0x21
-      ? "Write locked: ECS status 0x21 does not reliably report this card's writable type or observed 128 KiB capacity."
+      ? "Write locked: ECS status 0x21 may mean the card's physical write switch is OFF; capacity was verified by the full read."
       : "Write locked until an exact backup and all remaining package checks pass.";
     updateWriter({
       state: "connected",

@@ -22,10 +22,23 @@ searches stay local.
 
 ## macOS builds
 
-Run `npm run dist:mac` on macOS. The builder is configured to create DMG artifacts for
-both Apple silicon (`arm64`) and Intel (`x64`). Signing and notarization will be added
+Run `npm run dist:mac` on macOS. The builder creates one self-contained universal DMG
+with native Apple silicon (`arm64`) and Intel (`x64`) slices. The app bundles Electron
+and all application code; Python, Node.js, Palette, and Ink/Stitch are not runtime
+dependencies. The connected USB-to-RS-232 adapter must still be recognized as a
+serial device by macOS because an application cannot safely bundle a kernel/system
+driver for arbitrary adapters. Signing and notarization will be added
 when Apple Developer credentials are available; those credentials must never be
 stored in the repository.
+
+The confirmed adapter is a Prolific PL2303GT (`067B:23A3`). Current vendor material
+lists the GT family and PID `23A3` for macOS support, and adapter-vendor documentation
+reports built-in macOS support on modern releases. This must still be tested on the
+recipient Mac; if macOS does not enumerate the adapter, the app cannot repair that
+below the operating-system device layer. References:
+
+- <https://www.prolific.com.tw/portfolio-item/pl2303gt/>
+- <https://plugable.com/products/pl2303-db9/>
 
 ## Repository safety
 

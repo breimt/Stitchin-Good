@@ -82,14 +82,15 @@ allows writes.
 | `12` | 128 KiB | read-only |
 | `13` | 256 KiB | read-only |
 | `14` | 512 KiB | read-only |
-| `21` | 1 MiB | read-only (static Palette mapping; see live-read note) |
+| `21` | learned from `CR` | write-disabled/ambiguous; see live-read note |
 | `22`, `32` | 128 KiB | writable original card |
 | `23`, `33` | 256 KiB | writable original card |
 | `31`, `f0` | 512 KiB | writable original card |
 
 On 2026-09-11 a non-destructive `CT` query to the physical ECS on COM3 at 9600
-8-N-1 returned `41 21 62`. The checksum is valid and Palette's own status table maps
-`21` to a 1 MiB read-only card. No erase/write command was sent.
+8-N-1 returned `41 21 62`. The checksum is valid. Earlier static analysis associated
+`21` with a non-writable path, but the user's hardware history proves this physical
+card is rewritable. No erase/write command was sent.
 
 ### Live read result
 
@@ -99,10 +100,11 @@ block 1,024, for an authoritative transferred size of 131,072 bytes (128 KiB). A
 repeated read produced the same boundary; NAK requests after terminal ACK received
 NAK. The reader returned the ECS to 9600 baud after each attempt.
 
-This conflicts with the capacity inferred from Palette's `0x21` branch. Until the
-meaning is resolved with more card types, the replacement must distinguish
-`status-mapped capacity` from `observed transfer size`, accept terminal ACK as the end
-of a read, and never use `0x21` to authorize a write.
+This disproves treating `0x21` as a 1 MiB capacity report. The card has a physical
+ON/OFF write switch, making a write-disabled switch state the strongest current
+hypothesis. Until a user-attended A/B status probe confirms it, the replacement must
+use the terminal ACK to determine read capacity and never use `0x21` to authorize a
+write.
 
 The captured image:
 

@@ -16,7 +16,7 @@ say that explicitly and state when user involvement will next be needed.
 
 On 2026-09-13, the user confirmed that the card currently inserted in the ECS is a
 genuine rewritable card and explicitly authorized overwriting its current contents.
-The verified 128 KiB read-only capture remains the recovery baseline. This permission
+The verified 128 KiB capture remains the recovery baseline. This permission
 removes the ownership/content blocker, but it does not bypass the engineering safety
 gates: do not send erase/write commands until the write package is structurally
 validated and the ambiguous `0x21` status is resolved or independently proven safe.
@@ -65,7 +65,8 @@ validated and the ambiguous `0x21` status is resolved or independently proven sa
 - Added a pure seven-gate write preflight. It requires user authorization, a proven
   writable status, a structurally valid latest read, an exact matching backup, a
   structurally valid output package, observed-capacity agreement, and reported-
-  capacity agreement. Status `21` currently fails both status and capacity gates.
+  capacity agreement. Status `21` now fails the writable-status gate; capacity is
+  learned authoritatively from the full read's terminal ACK.
 - Non-destructive live probes confirmed `CI -> 06`, `CV -> 41 01 42`, a valid
   132-byte `CD` test block, and stable `CT -> 41 21 62`. No erase/write command was
   sent. Exact per-design storage cost now includes its directory and color-table
@@ -76,7 +77,25 @@ validated and the ambiguous `0x21` status is resolved or independently proven sa
 - Added a pure guarded write-session reducer. It cannot skip read, exact-backup,
   preflight, confirmation, erase, write, or byte-for-byte verification states, and
   it exposes erase/write permission only in the corresponding safe state.
-- The suite now passes 45 tests.
+- Added lossless ECS transcript recording and deterministic replay channels. Replay
+  asserts every transmitted byte and is tested through the actual card-read state
+  machine, allowing captured sessions to become cross-platform regression fixtures.
+- The user confirmed the inserted `95204` Brother 40-pin card is rewritable, has a
+  physical ON/OFF write-control switch, and has previously been erased/written with
+  this ECS. Status `21` is therefore modeled as write-disabled/ambiguous with capacity
+  deferred to the terminal read boundary, not as a 1 MiB read-only card. The leading
+  hypothesis is switch position; it needs a user-attended A/B `CT` probe.
+- Documented the confirmed Tacony Palette ECS hardware target and separated the true
+  on-machine alphabet-card research track from ordinary collections of PES glyphs.
+- Consolidated macOS packaging to one workflow producing a single universal DMG and
+  verifying both Intel and Apple-silicon executable slices.
+- Added dependency-free raw-card analysis for varying/invariant regions, banked
+  Brother pointer candidates, and embedded ASCII strings, plus a CLI that operates
+  on ignored user-owned dumps without copying them into the repository.
+- Added release-contract tests for the single universal macOS DMG and canonical
+  tested/lipo-verified build workflow. The confirmed PL2303GT (`067B:23A3`) has
+  current macOS support documentation, but enumeration still needs a real-Mac test.
+- The suite now passes 53 tests.
 
 ## Resume here next session
 
@@ -124,11 +143,12 @@ read successfully from the ECS writer on COM3 at 9600 baud.
   checks.
 - A live, non-destructive `CT` query on COM3 returned `41 21 62` with a valid
   checksum. This confirms the response prefix/status/checksum interpretation. The
-  inserted card at that moment reported raw status `21`, which Palette maps to a
-  1 MiB read-only card; no erase or write command was sent.
+  inserted card at that moment reported raw status `21`, which follows Palette's
+  non-writable path; no erase or write command was sent. Later user-supplied hardware
+  history proved the card itself is rewritable.
 - A full read was then attempted without any erase/write command. The physical ECS
   returned 1,024 valid 128-byte blocks followed by terminal ACK, so the observed image
-  is 131,072 bytes despite Palette's static `0x21` mapping suggesting 1 MiB. The
+  is 131,072 bytes, disproving the earlier 1 MiB interpretation of `0x21`. The
   capture is `captures/20260912T002646Z/card.img`, SHA-256
   `e97ac9361e09061b10a10646475c6a1b4a01d98f662729d4f27932505f509c99`.
 - Exact byte-signature comparison against 2,673 local PES files found three strong
