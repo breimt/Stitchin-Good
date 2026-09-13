@@ -3,6 +3,11 @@
 Status: read path implemented for one user-confirmed 128 KiB P7H layout; arbitrary
 image generation is still intentionally disabled.
 
+In this document, **card image** means the complete binary contents and layout of the
+card's storage. It is not a picture or embroidery preview. The ready-to-stitch PES
+designs supply the stitch data and preview planes, but the ECS writer transfers the
+whole capacity-sized storage layout rather than copying PES files onto a filesystem.
+
 ## Golden fixture
 
 The local capture `captures/20260912T002646Z/card.img` has SHA-256

@@ -610,7 +610,7 @@ async function readInsertedCard() {
     const message = document.createElement("p");
     message.className = "empty-selection error-text";
     message.textContent = imageTransferred
-      ? `${error.message} The exact raw card image is still available to save.`
+      ? `${error.message} The exact card backup is still available to save.`
       : error.message;
     elements.cardFileList.replaceChildren(message);
     updateWriter({ state: "error", title: "Could not read card", detail: error.message });
