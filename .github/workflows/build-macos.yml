@@ -3,8 +3,13 @@ name: Build macOS app
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     tags:
       - "v*"
+    paths:
+      - "app/**"
+      - ".github/workflows/build-macos.yml"
 
 permissions:
   contents: read
