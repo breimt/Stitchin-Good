@@ -26,6 +26,7 @@ const elements = {
   readProgressLabel: document.querySelector("#read-progress-label"), cardDesignCount: document.querySelector("#card-design-count"),
   cardFileList: document.querySelector("#card-file-list"), exportAllCard: document.querySelector("#export-all-card"),
   saveCardBackup: document.querySelector("#save-card-backup"),
+  transferNote: document.querySelector("#transfer-note"),
 };
 
 const selected = new Map();
@@ -566,7 +567,10 @@ async function readInsertedCard() {
       capacityBytes: card.capacityBytes,
       existingBytes: card.occupiedBytes,
     };
-    elements.cardKind.textContent = `${cardState.kind === "original" ? "Writable" : "Read-only"} · ${card.designCount} designs`;
+    elements.cardKind.textContent = `${formatBytes(card.capacityBytes)} card · ${card.designCount} designs`;
+    elements.transferNote.textContent = cardState.rawStatus === 0x21
+      ? "Write locked: ECS status 0x21 does not reliably report this card's writable type or observed 128 KiB capacity."
+      : "Write locked until an exact backup and all remaining package checks pass.";
     updateWriter({
       state: "connected",
       title: "Card read complete",
@@ -630,7 +634,7 @@ async function openWriterPort(port) {
       cardState.rawStatus = status.rawStatus;
       elements.readCard.disabled = false;
       elements.cardKind.textContent = ambiguousCapacity
-        ? "Read-only · capacity unverified"
+        ? "Card detected · capacity pending full read"
         : status.kind === "original" ? "Writable card" : status.kind === "read-only" ? "Read-only card" : "Unrecognized card";
       elements.writerDetail.textContent = `${elements.writerDetail.textContent} · status ${status.rawStatus.toString(16).padStart(2, "0").toUpperCase()}`;
     } catch (error) {
