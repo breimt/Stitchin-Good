@@ -23,4 +23,6 @@ test("one canonical macOS workflow tests, builds, and verifies both slices", () 
   assert.match(workflow, /npm test/);
   assert.match(workflow, /lipo -info/);
   assert.match(workflow, /app\/dist\/\*\.dmg/);
+  assert.match(workflow, /cancel-in-progress: true/);
+  assert.match(workflow, /retention-days: 14/);
 });

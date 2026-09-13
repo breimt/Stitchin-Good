@@ -115,6 +115,8 @@ validated and the ambiguous `0x21` status is resolved or independently proven sa
   package, verified its Intel and Apple-silicon slices with `lipo`, and uploaded the
   `stitchin-good-macos` artifact (226,510,371 bytes). This proves packaging on a real
   macOS runner; physical PL2303GT/ECS communication still requires the recipient Mac.
+- Mac packaging runs now cancel superseded builds on the same ref and retain large
+  DMG artifacts for 14 days, limiting CI/storage waste during active development.
 - The suite now passes 58 tests.
 
 ## Resume here next session
