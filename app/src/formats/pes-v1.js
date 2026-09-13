@@ -1,3 +1,5 @@
+import { pecThread, pecThreadColor } from "./pec-threads.js";
+
 const PES_V1_SIGNATURE = "#PES0001";
 const PEC_HEADER_BYTES = 512;
 const PEC_STITCH_PREFIX_BYTES = 7;
@@ -70,6 +72,15 @@ function countPecCommands(bytes, start, end) {
   }
 
   return Object.freeze({ stitches, jumps, trims, colorChanges, ended });
+}
+
+function signed7(value) {
+  return value > 0x3f ? value - 0x80 : value;
+}
+
+function signed12(value) {
+  const masked = value & 0x0fff;
+  return masked > 0x07ff ? masked - 0x1000 : masked;
 }
 
 /**
@@ -167,6 +178,185 @@ export function decodePecThumbnail(bytes, iconIndex = 0) {
     width: parsed.graphicWidth,
     height: parsed.graphicHeight,
     pixels,
+  });
+}
+
+function isPecIconFrame(x, y, width, height) {
+  if ((y === 1 || y === height - 2) && x >= 4 && x <= width - 5) return true;
+  if ((y === 2 || y === height - 3) && (x === 3 || x === width - 4)) return true;
+  if ((y === 3 || y === height - 4) && (x === 2 || x === width - 3)) return true;
+  return (x === 1 || x === width - 2) && y >= 4 && y <= height - 5;
+}
+
+function withoutPecIconFrame(thumbnail) {
+  const pixels = thumbnail.pixels.slice();
+  for (let y = 0; y < thumbnail.height; y += 1) {
+    for (let x = 0; x < thumbnail.width; x += 1) {
+      if (isPecIconFrame(x, y, thumbnail.width, thumbnail.height)) {
+        pixels[(y * thumbnail.width) + x] = 0;
+      }
+    }
+  }
+  return pixels;
+}
+
+/** Composite PEC's per-thread icon planes into a color thumbnail. */
+export function decodePecColorThumbnail(bytes) {
+  const parsed = parsePesV1(bytes);
+  const colors = Object.freeze(parsed.colorIndexes.map(pecThreadColor));
+  const pixels = new Uint8Array(parsed.graphicWidth * parsed.graphicHeight);
+  let coloredPixelCount = 0;
+
+  for (let colorIndex = 0; colorIndex < colors.length; colorIndex += 1) {
+    const iconIndex = colorIndex + 1;
+    if (iconIndex >= parsed.iconCount) break;
+    const plane = decodePecThumbnail(bytes, iconIndex);
+    const planePixels = withoutPecIconFrame(plane);
+    for (let index = 0; index < pixels.length; index += 1) {
+      if (planePixels[index] === 0) continue;
+      if (pixels[index] === 0) coloredPixelCount += 1;
+      pixels[index] = colorIndex + 1;
+    }
+  }
+
+  // Some writers include only the combined monochrome plane. Keep those designs
+  // visible using their first recorded thread color.
+  if (coloredPixelCount === 0) {
+    const combined = decodePecThumbnail(bytes);
+    pixels.set(withoutPecIconFrame(combined));
+  }
+
+  return Object.freeze({
+    width: parsed.graphicWidth,
+    height: parsed.graphicHeight,
+    colors,
+    pixels,
+  });
+}
+
+/** Return each ordered PEC thread/color step with its isolated icon plane. */
+export function decodePecColorSteps(bytes) {
+  const parsed = parsePesV1(bytes);
+  return Object.freeze(parsed.colorIndexes.map((paletteIndex, index) => {
+    const thread = pecThread(paletteIndex);
+    const iconIndex = index + 1;
+    const plane = decodePecThumbnail(bytes, iconIndex < parsed.iconCount ? iconIndex : 0);
+    return Object.freeze({
+      number: index + 1,
+      paletteIndex: thread.index,
+      color: thread.color,
+      colorName: thread.name,
+      width: plane.width,
+      height: plane.height,
+      pixels: withoutPecIconFrame(plane),
+    });
+  }));
+}
+
+/** Decode the actual PEC stitch stream into ordered, color-aware SVG path data. */
+export function decodePecStitchPlan(bytes) {
+  const parsed = parsePesV1(bytes);
+  const steps = parsed.colorIndexes.map((paletteIndex, index) => {
+    const thread = pecThread(paletteIndex);
+    return {
+      number: index + 1,
+      paletteIndex: thread.index,
+      color: thread.color,
+      colorName: thread.name,
+      pathParts: [],
+      stitchCount: 0,
+      minX: Infinity,
+      minY: Infinity,
+      maxX: -Infinity,
+      maxY: -Infinity,
+    };
+  });
+
+  let cursor = parsed.stitchDataOffset;
+  let x = 0;
+  let y = 0;
+  let stepIndex = 0;
+  let pathOpen = false;
+  while (cursor < parsed.iconOffset && stepIndex < steps.length) {
+    if (cursor === parsed.iconOffset - 1 && bytes[cursor] === 0xff) break;
+    if (cursor + 1 >= parsed.iconOffset) break;
+    let first = bytes[cursor++];
+    let second = bytes[cursor++];
+    if (first === 0xff && second === 0x00) break;
+    if (first === 0xfe && second === 0xb0) {
+      if (cursor < parsed.iconOffset) cursor += 1;
+      stepIndex = Math.min(stepIndex + 1, steps.length - 1);
+      pathOpen = false;
+      continue;
+    }
+
+    let jump = false;
+    let trim = false;
+    let deltaX;
+    let deltaY;
+    if ((first & 0x80) !== 0) {
+      trim ||= (first & 0x20) !== 0;
+      jump ||= (first & 0x10) !== 0;
+      if (cursor >= parsed.iconOffset) break;
+      deltaX = signed12((first << 8) | second);
+      second = bytes[cursor++];
+    } else deltaX = signed7(first);
+
+    if ((second & 0x80) !== 0) {
+      trim ||= (second & 0x20) !== 0;
+      jump ||= (second & 0x10) !== 0;
+      if (cursor >= parsed.iconOffset) break;
+      deltaY = signed12((second << 8) | bytes[cursor++]);
+    } else deltaY = signed7(second);
+
+    const previousX = x;
+    const previousY = y;
+    x += deltaX;
+    y += deltaY;
+    if (jump || trim || (deltaX === 0 && deltaY === 0)) {
+      pathOpen = false;
+      continue;
+    }
+
+    const step = steps[stepIndex];
+    if (!pathOpen) step.pathParts.push(`M${previousX} ${previousY}`);
+    step.pathParts.push(`l${deltaX} ${deltaY}`);
+    pathOpen = true;
+    step.stitchCount += 1;
+    step.minX = Math.min(step.minX, previousX, x);
+    step.minY = Math.min(step.minY, previousY, y);
+    step.maxX = Math.max(step.maxX, previousX, x);
+    step.maxY = Math.max(step.maxY, previousY, y);
+  }
+
+  const populated = steps.filter((step) => step.stitchCount > 0);
+  const fallbackWidth = Math.max(1, parsed.widthMm * 10);
+  const fallbackHeight = Math.max(1, parsed.heightMm * 10);
+  const bounds = populated.length > 0 ? {
+    minX: Math.min(...populated.map((step) => step.minX)),
+    minY: Math.min(...populated.map((step) => step.minY)),
+    maxX: Math.max(...populated.map((step) => step.maxX)),
+    maxY: Math.max(...populated.map((step) => step.maxY)),
+  } : {
+    minX: -fallbackWidth / 2,
+    minY: -fallbackHeight / 2,
+    maxX: fallbackWidth / 2,
+    maxY: fallbackHeight / 2,
+  };
+
+  return Object.freeze({
+    bounds: Object.freeze(bounds),
+    steps: Object.freeze(steps.map((step) => Object.freeze({
+      number: step.number,
+      paletteIndex: step.paletteIndex,
+      color: step.color,
+      colorName: step.colorName,
+      path: step.pathParts.join(""),
+      stitchCount: step.stitchCount,
+      bounds: Object.freeze(step.stitchCount > 0 ? {
+        minX: step.minX, minY: step.minY, maxX: step.maxX, maxY: step.maxY,
+      } : bounds),
+    }))),
   });
 }
 

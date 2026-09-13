@@ -103,6 +103,13 @@ inside one active transfer when the device returns NAK or a checksum fails.
 - Read a card to a backup file and parse its design directory.
 - Test on Windows, then on the target Mac and USB-serial adapter.
 
+The Electron shell now implements the first part of this milestone: a Web Serial
+device chooser, explicit 9600 8-N-1 open, ECS-compatible RTS/DTR signals, and a
+read-only `CT` status query. The production transport still needs tested baud
+negotiation, complete reads, cancellation, disconnect recovery, and validation on
+the target Mac. Web Serial requires close/reopen to change baud; that behavior must
+be proven against this vintage ECS before it is used for full block transfers.
+
 ### M4 - guarded writes
 
 - Implement erase, block write, read-back, and verification.

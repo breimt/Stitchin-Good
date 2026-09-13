@@ -36,14 +36,24 @@ Source repository: <https://github.com/breimt/Stitchin-Good>
   explicit unsupported cases. `scripts/catalog-pes.mjs` reproduces the inventory.
 - A standalone Electron desktop shell now provides native folder selection, offline
   recursive indexing, PEC thumbnails, metadata, search, collection/compatibility
-  filters, sorting, and persistent multi-selection. It does not run a web server.
+  filters, sorting, and persistent multi-selection in a compact dark workbench. It
+  does not run a web server.
+- The card inspector shows the exact transformed byte cost of every design and the
+  combined pending selection. It deliberately leaves existing/free space unknown
+  until an inserted card has been read and its directory can be validated.
+- The Electron shell has a cross-platform Web Serial chooser and read-only 9600-baud
+  `CT` card-status probe. This is the first macOS-capable hardware path, but full
+  read/baud negotiation and guarded writing are not implemented yet.
+- Library thumbnails are rendered from the actual color-separated PEC stitch stream,
+  not the low-resolution machine-menu icon. A click opens full metadata and the
+  ordered, isolated preview/color/stitch count for every thread step.
 - Selection planning compacts designs into sequential card placements, so aggregate
   free capacity remains usable even when the previous card layout was fragmented.
 - A dependency-free JavaScript implementation of the proven packet primitives is in
   [`app/src/protocol/ecs.js`](app/src/protocol/ecs.js), with tests.
-- The current automated suite passes 19 tests covering protocol packets, card status,
+- The current automated suite passes 21 tests covering protocol packets, card status,
   PES parsing, golden design blobs, search metadata, capacity checks, and compacted
-  placement.
+  placement, plus the desktop UI safety contract.
 - The remaining critical unknown is the binary card-image layout that Palette builds
   from PES/PEC data, thumbnails, metadata, and menus. We will not perform writes from
   the replacement until generated images match captured Palette output and pass
@@ -77,6 +87,13 @@ npm run dev
 `npm start` launches without a preselected folder and uses the native folder picker.
 The eventual macOS `.app`/`.dmg` is built on macOS with `npm run dist:mac`; no browser,
 localhost service, Palette installation, or network connection is required at runtime.
+
+The generated Intel and Apple-silicon DMGs are self-contained: Electron and all
+application code are bundled inside the installed app. A Mac user does not install
+Node.js, npm, JavaScript packages, or a separate application runtime. Tagged builds
+and manual runs of `.github/workflows/build-macos.yml` produce both installers on a
+macOS runner. Developer ID signing/notarization credentials are still required before
+the final public handoff can install without Gatekeeper's unsigned-app warning.
 
 ## Safety
 

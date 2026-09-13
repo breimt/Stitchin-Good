@@ -3,7 +3,41 @@
 For the design-to-PES production and quality process, see
 [`EMBROIDERY_DESIGN_GUIDE.md`](EMBROIDERY_DESIGN_GUIDE.md).
 
-Last worked: 2026-09-11 (America/Chicago)
+Last worked: 2026-09-13 (America/Chicago)
+
+## 2026-09-13 UI and Mac-transport update
+
+- Replaced the cream/green promotional interface with a compact VS Code-style dark
+  workbench: square edges, dense design rows, library sidebar, persistent card
+  inspector, selected-design list, and status bar.
+- Every compatible design and selected item shows its exact transformed card-blob
+  size. The inspector distinguishes exact selected bytes from unknown existing/free
+  bytes and refuses to invent capacity before a successful card read.
+- Added an Electron Web Serial device chooser, serial permission handling, 9600
+  8-N-1 open with ECS RTS/DTR signals, and a read-only `CT` card-status probe. This
+  is intended for macOS and Windows, but target-Mac hardware testing remains required.
+- Destructive erase/write remains disabled. Full reads and actual used/free-space
+  reporting still depend on recovering the card directory/image format; Mac writing
+  additionally needs proven baud negotiation, block transport, image generation,
+  read-back verification, signing, and packaged hardware testing.
+- The suite now includes UI contract tests and passes 21 tests.
+- Design previews now render the actual PEC stitch stream in ordered Brother thread
+  colors, closely matching OS embroidery thumbnails instead of the tiny machine-menu
+  silhouette. Clicking a design opens full metadata plus a tightly cropped stitch
+  preview, color name, palette number, hex swatch, and stitch count for every step.
+  Clicking the modal backdrop closes it. The old PEC icon frame is never rendered.
+- The known Prolific `067B:23A3` adapter is preferred automatically by the serial
+  chooser. The disconnected copy now distinguishes a physically connected cable
+  from a serial port that the app has not opened.
+- macOS packaging explicitly uses an ASAR bundle and CI can produce self-contained
+  arm64/x64 DMGs. No runtime, npm, Palette, server, or network connection is needed;
+  Developer ID signing/notarization and target-Mac adapter-driver validation remain.
+- A live Electron smoke check opened the local `067B:23A3` adapter at 9600 baud and
+  received card status `21`; step images loaded and backdrop-close behavior passed.
+- New requested workflow: read and list designs currently on an inserted card, export
+  one or all as reconstructed machine-readable files, and always offer a raw image
+  backup. Card payloads are transformed data, not original PES containers, so export
+  must reconstruct a valid PES/PEC instead of claiming byte-identical recovery.
 
 ## Resume here next session
 

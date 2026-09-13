@@ -4,72 +4,161 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob: data:; script-src 'self'; style-src 'self'">
-  <title>Stitchin' Good ECS Card Writer</title>
+  <title>Stitchin' Good</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="masthead">
-    <div>
-      <p class="eyebrow">Baby Lock / Brother</p>
-      <h1>ECS Design Library</h1>
-      <p class="subtitle">Browse locally. Select confidently. Transfer safely.</p>
-    </div>
-    <div class="library-stat">
-      <strong id="library-count" aria-live="polite">Choose a design folder</strong>
-      <span id="library-path"></span>
-      <button id="choose-folder" class="choose-folder" type="button">Choose folder…</button>
-    </div>
-  </header>
+  <div class="app-shell">
+    <header class="titlebar">
+      <div class="brand-mark" aria-hidden="true">SG</div>
+      <strong>Stitchin' Good</strong>
+      <span class="title-context">ECS Card Writer</span>
+      <span class="local-badge">LOCAL</span>
+    </header>
 
-  <main>
-    <section class="controls" aria-label="Search and filters">
-      <label class="search-field">
-        <span>Search designs</span>
-        <input id="search" type="search" placeholder="Try moon, Halloween, flowers…" autocomplete="off">
-      </label>
-      <label>
-        <span>Collection</span>
-        <select id="folder"><option value="">All collections</option></select>
-      </label>
-      <label>
-        <span>Compatibility</span>
-        <select id="compatibility">
-          <option value="all">All designs</option>
-          <option value="supported">Ready for ECS</option>
-          <option value="unsupported">Needs attention</option>
-        </select>
-      </label>
-      <label>
-        <span>Sort</span>
-        <select id="sort">
-          <option value="name">Name</option>
-          <option value="folder">Collection</option>
-          <option value="stitches">Stitches</option>
-          <option value="colors">Colors</option>
-          <option value="cardSize">Card space</option>
-        </select>
-      </label>
-    </section>
+    <div class="workbench">
+      <aside class="sidebar" aria-label="Design library">
+        <section class="sidebar-section">
+          <div class="section-heading">
+            <h2>Library</h2>
+            <button id="choose-folder" class="icon-button" type="button" title="Choose design folder" aria-label="Choose design folder">+</button>
+          </div>
+          <strong id="library-count" class="library-count" aria-live="polite">No folder open</strong>
+          <span id="library-path" class="library-path">Choose a folder of PES files.</span>
+          <button id="open-folder" class="secondary full-width" type="button">Open folder…</button>
+        </section>
 
-    <div class="results-heading">
-      <p id="result-count" aria-live="polite">Loading designs…</p>
-      <p class="local-note">Offline desktop library · files stay on this computer.</p>
-    </div>
-    <section id="design-grid" class="design-grid" aria-label="Design results"></section>
-  </main>
+        <section class="sidebar-section collections-section">
+          <h2>Collections</h2>
+          <label class="field-label" for="folder">Folder</label>
+          <select id="folder"><option value="">All collections</option></select>
+          <p class="privacy-note">Indexed locally. Design files never leave this computer.</p>
+        </section>
+      </aside>
 
-  <aside class="selection-tray" aria-label="Selected designs">
-    <div>
-      <span class="tray-label">Selected for card</span>
-      <strong id="selection-count">0 designs</strong>
-      <span id="selection-size">0 bytes of design data</span>
+      <main class="library-pane">
+        <section class="toolbar" aria-label="Search and filters">
+          <label class="search-field">
+            <span class="visually-hidden">Search designs</span>
+            <span class="search-icon" aria-hidden="true"></span>
+            <input id="search" type="search" placeholder="Search designs" autocomplete="off">
+          </label>
+          <label>
+            <span class="visually-hidden">Compatibility</span>
+            <select id="compatibility">
+              <option value="all">All designs</option>
+              <option value="supported" selected>ECS compatible</option>
+              <option value="unsupported">Needs attention</option>
+            </select>
+          </label>
+          <label>
+            <span class="visually-hidden">Sort designs</span>
+            <select id="sort">
+              <option value="name">Sort: Name</option>
+              <option value="folder">Sort: Collection</option>
+              <option value="stitches">Sort: Stitches</option>
+              <option value="colors">Sort: Colors</option>
+              <option value="cardSize">Sort: Card space</option>
+            </select>
+          </label>
+        </section>
+
+        <div class="results-heading">
+          <h1>Designs</h1>
+          <span id="result-count" aria-live="polite">Choose a library folder to begin</span>
+        </div>
+        <section id="design-grid" class="design-grid" aria-label="Design results"></section>
+      </main>
+
+      <aside class="card-panel" aria-label="Card status and selected designs">
+        <section class="panel-section writer-section">
+          <div class="section-heading">
+            <h2>Writer</h2>
+            <span id="writer-indicator" class="status-dot" aria-hidden="true"></span>
+          </div>
+          <strong id="writer-status">Writer port not opened</strong>
+          <span id="writer-detail" class="muted">The cable may be connected. Open the serial port to check the ECS.</span>
+          <button id="connect-writer" class="secondary full-width" type="button">Connect writer…</button>
+        </section>
+
+        <section class="panel-section capacity-section">
+          <div class="section-heading">
+            <h2>Card memory</h2>
+            <span id="card-kind" class="muted">No card data</span>
+          </div>
+          <div class="capacity-bar" role="img" aria-labelledby="capacity-label">
+            <span id="capacity-existing" class="capacity-existing"></span>
+            <span id="capacity-selected" class="capacity-selected"></span>
+          </div>
+          <span id="capacity-label" class="capacity-caption">Connect and read a card to calculate available space.</span>
+          <dl class="memory-grid">
+            <div><dt>Card capacity</dt><dd id="card-capacity">—</dd></div>
+            <div><dt>Existing data</dt><dd id="existing-size">—</dd></div>
+            <div><dt>Selected</dt><dd id="selection-size">0 B</dd></div>
+            <div><dt>Available</dt><dd id="available-size">—</dd></div>
+          </dl>
+        </section>
+
+        <section class="panel-section selection-section">
+          <div class="section-heading">
+            <h2>Selected</h2>
+            <button id="clear-selection" class="text-button" type="button" disabled>Clear all</button>
+          </div>
+          <strong id="selection-count">0 designs</strong>
+          <div id="selection-list" class="selection-list">
+            <p class="empty-selection">Select a design to add it to the transfer plan.</p>
+          </div>
+        </section>
+
+        <section class="transfer-section">
+          <button id="review-transfer" class="primary full-width" type="button" disabled>Writing not yet enabled</button>
+          <p id="transfer-note">Card writing stays locked until complete image validation and read-back verification are implemented.</p>
+        </section>
+      </aside>
     </div>
-    <div class="tray-actions">
-      <button id="clear-selection" class="secondary" type="button" disabled>Clear</button>
-      <button id="review-transfer" type="button" disabled>Review transfer</button>
+
+    <footer class="statusbar">
+      <span><span class="status-icon" aria-hidden="true">●</span> Offline library</span>
+      <span id="footer-selection">0 selected · 0 B</span>
+      <span id="platform-status">macOS + Windows</span>
+    </footer>
+  </div>
+
+  <dialog id="design-dialog" class="design-dialog">
+    <div class="dialog-title design-dialog-title">
+      <div>
+        <span class="dialog-kicker">Design details</span>
+        <strong id="detail-title">Design</strong>
+        <span id="detail-file" class="muted"></span>
+      </div>
+      <button id="close-details" class="icon-button" type="button" aria-label="Close design details">×</button>
     </div>
-    <p class="development-note">Transfer remains locked until complete card-image validation passes.</p>
-  </aside>
+    <div class="design-overview">
+      <div class="detail-preview"><img id="detail-preview" alt=""></div>
+      <dl id="detail-metadata" class="detail-metadata"></dl>
+    </div>
+    <div class="steps-heading">
+      <h2>Thread sequence</h2>
+      <span id="step-count">0 steps</span>
+    </div>
+    <div id="step-list" class="step-list" aria-live="polite"></div>
+  </dialog>
+
+  <dialog id="port-dialog" class="port-dialog">
+    <form id="port-form" method="dialog">
+      <div class="dialog-title">
+        <strong>Select serial device</strong>
+        <button id="cancel-port-x" class="icon-button" type="button" aria-label="Cancel">×</button>
+      </div>
+      <p>Choose the USB-serial adapter connected to the powered ECS writer.</p>
+      <label class="field-label" for="port-list">Available devices</label>
+      <select id="port-list" size="5" required></select>
+      <div class="dialog-actions">
+        <button id="cancel-port" class="secondary" type="button">Cancel</button>
+        <button class="primary" type="submit">Connect</button>
+      </div>
+    </form>
+  </dialog>
 
   <script type="module" src="app.js"></script>
 </body>

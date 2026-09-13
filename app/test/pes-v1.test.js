@@ -4,7 +4,13 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { buildEcsDesignBlob, decodePecThumbnail, parsePesV1 } from "../src/formats/pes-v1.js";
+import {
+  buildEcsDesignBlob,
+  decodePecColorThumbnail,
+  decodePecStitchPlan,
+  decodePecThumbnail,
+  parsePesV1,
+} from "../src/formats/pes-v1.js";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const cardPath = path.join(repositoryRoot, "captures", "20260912T002646Z", "card.img");
@@ -44,7 +50,7 @@ test("synthetic PES metadata and thumbnail decode without repository designs", (
   const stitchBlockOffset = pecOffset + 512;
   const stitchStream = Uint8Array.of(
     0xf0, 0x7b, 0x00, 0xc8, 0x01, 0xe0, 0x01, 0xb0, 0x01,
-    0x00, 0x00, 0xff,
+    0x0a, 0x7b, 0xff,
   );
   const stitchBlockLength = 7 + stitchStream.length;
   const iconOffset = stitchBlockOffset + stitchBlockLength;
@@ -61,6 +67,8 @@ test("synthetic PES metadata and thumbnail decode without repository designs", (
   bytes[stitchBlockOffset + 6] = 0xff;
   bytes.set(stitchStream, stitchBlockOffset + 7);
   bytes[iconOffset + 1] = 0b00000101;
+  bytes[iconOffset + 228 + 1] = 0b00000101;
+  bytes[iconOffset + 228 + 6] = 0b00010000; // PEC's non-design frame, x=4/y=1.
 
   const parsed = parsePesV1(bytes);
   assert.equal(parsed.label, "Test Design");
@@ -73,6 +81,16 @@ test("synthetic PES metadata and thumbnail decode without repository designs", (
 
   const thumbnail = decodePecThumbnail(bytes);
   assert.deepEqual([...thumbnail.pixels.subarray(8, 12)], [1, 0, 1, 0]);
+
+  const colorThumbnail = decodePecColorThumbnail(bytes);
+  assert.equal(colorThumbnail.colors[0], "#ed171f");
+  assert.deepEqual([...colorThumbnail.pixels.subarray(8, 12)], [1, 0, 1, 0]);
+  assert.equal(colorThumbnail.pixels[(1 * 48) + 4], 0);
+
+  const stitchPlan = decodePecStitchPlan(bytes);
+  assert.equal(stitchPlan.steps[0].colorName, "Red");
+  assert.equal(stitchPlan.steps[0].stitchCount, 1);
+  assert.equal(stitchPlan.steps[0].path, "M0 0l10 -5");
 });
 
 const fixtureAvailable = fs.existsSync(cardPath) && designs.every((design) => fs.existsSync(design.path));

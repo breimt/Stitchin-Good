@@ -21,6 +21,8 @@
   "build": {
     "appId": "com.stitchingood.ecs-card-writer",
     "productName": "Stitchin' Good ECS Card Writer",
+    "asar": true,
+    "artifactName": "Stitchin-Good-ECS-${version}-${arch}.${ext}",
     "files": [
       "src/**/*",
       "ui/**/*",
