@@ -73,7 +73,10 @@ validated and the ambiguous `0x21` status is resolved or independently proven sa
 - An independent write-package validator now checks standard capacity, contiguous
   design extents, directory placement, calculated storage totals, and a fully erased
   `0xFF` tail. Post-write comparison identifies the first mismatched byte.
-- The suite now passes 41 tests.
+- Added a pure guarded write-session reducer. It cannot skip read, exact-backup,
+  preflight, confirmation, erase, write, or byte-for-byte verification states, and
+  it exposes erase/write permission only in the corresponding safe state.
+- The suite now passes 45 tests.
 
 ## Resume here next session
 

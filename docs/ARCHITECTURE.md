@@ -120,6 +120,9 @@ Before erase, a pure preflight requires explicit authorization, a backup matchin
 the latest card read, independently parseable input/output layouts, exact observed
 capacity, a consistent reported capacity, and a status proven writable. No single
 override bypasses the remaining checks.
+The pure write-session reducer then requires every workflow transition in order and
+only exposes erase/write permission in the exact states where that hardware action
+is valid. A mismatched read-back cannot transition to complete.
 
 ### M5 - Mac handoff
 
