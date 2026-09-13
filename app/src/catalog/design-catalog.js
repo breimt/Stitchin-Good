@@ -1,4 +1,5 @@
 import { buildEcsDesignBlob, parsePesV1 } from "../formats/pes-v1.js";
+import { designStorageBytes } from "../formats/card-layout.js";
 
 function bytesSignature(bytes) {
   return String.fromCharCode(...bytes.subarray(0, Math.min(8, bytes.length)));
@@ -40,6 +41,7 @@ export function createDesignRecord({ filePath, relativePath = filePath, bytes, m
 
   try {
     const parsed = parsePesV1(bytes);
+    const cardBlobBytes = buildEcsDesignBlob(bytes).length;
     const record = {
       ...base,
       label: parsed.label,
@@ -50,7 +52,8 @@ export function createDesignRecord({ filePath, relativePath = filePath, bytes, m
       colorCount: parsed.colorCount,
       stitchCount: parsed.stitches,
       jumpCount: parsed.jumps,
-      cardBlobBytes: buildEcsDesignBlob(bytes).length,
+      cardBlobBytes,
+      cardStorageBytes: designStorageBytes({ cardBlobBytes, colorCount: parsed.colorCount }),
       thumbnailWidth: parsed.graphicWidth,
       thumbnailHeight: parsed.graphicHeight,
     };
@@ -70,6 +73,7 @@ export function createDesignRecord({ filePath, relativePath = filePath, bytes, m
       stitchCount: null,
       jumpCount: null,
       cardBlobBytes: null,
+      cardStorageBytes: null,
       thumbnailWidth: null,
       thumbnailHeight: null,
     };
@@ -87,7 +91,7 @@ const SORT_VALUE = Object.freeze({
   height: (record) => record.heightMm,
   colors: (record) => record.colorCount,
   stitches: (record) => record.stitchCount,
-  cardSize: (record) => record.cardBlobBytes,
+  cardSize: (record) => record.cardStorageBytes,
 });
 
 /** Search, filter, and sort immutable design records without filesystem access. */
@@ -142,7 +146,7 @@ export function summarizeSelection(records, usableBytes) {
     throw new RangeError("usableBytes must be a non-negative safe integer");
   }
   const unsupported = records.filter((record) => !record.supported);
-  const usedBytes = records.reduce((sum, record) => sum + (record.cardBlobBytes ?? 0), 0);
+  const usedBytes = records.reduce((sum, record) => sum + (record.cardStorageBytes ?? 0), 0);
   return Object.freeze({
     designCount: records.length,
     supportedCount: records.length - unsupported.length,

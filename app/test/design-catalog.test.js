@@ -32,6 +32,7 @@ test("catalog records expose searchable transfer metadata", {
   assert.equal(record.label, "NV089Moon");
   assert.equal(record.pesVersion, 1);
   assert.equal(record.cardBlobBytes, 1_048);
+  assert.equal(record.cardStorageBytes, 1_058);
   assert.ok(record.widthMm > 0);
   assert.ok(record.heightMm > 0);
   assert.ok(record.stitchCount > 0);
@@ -63,15 +64,15 @@ test("search matches multiple words across folder, label, and filename", () => {
 });
 
 test("selection summary blocks unsupported or oversized transfers", () => {
-  const supported = { supported: true, cardBlobBytes: 600 };
-  const unsupported = { supported: false, cardBlobBytes: null };
+  const supported = { supported: true, cardBlobBytes: 600, cardStorageBytes: 610 };
+  const unsupported = { supported: false, cardBlobBytes: null, cardStorageBytes: null };
   assert.deepEqual(summarizeSelection([supported], 1_000), {
     designCount: 1,
     supportedCount: 1,
     unsupportedCount: 0,
-    usedBytes: 600,
+    usedBytes: 610,
     usableBytes: 1_000,
-    remainingBytes: 400,
+    remainingBytes: 390,
     fits: true,
   });
   assert.equal(summarizeSelection([supported, unsupported], 1_000).fits, false);

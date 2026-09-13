@@ -31,9 +31,10 @@ Source repository: <https://github.com/breimt/Stitchin-Good>
 - Card designs can be previewed with their full thread sequence and exported one at
   a time or together as reconstructed PES v1 files. Export All also includes a
   byte-for-byte `.img` backup, and the raw backup can be saved separately.
-- The cross-platform PES v1 parser now reproduces all three card design blobs exactly:
-  66,013 bytes match the capture byte-for-byte. The remaining image-format work is
-  the card directory, pointers, color/menu tables, and trailer.
+- The cross-platform PES v1 parser reproduces all three card design blobs exactly:
+  66,013 bytes match the capture byte-for-byte. The captured design directory and
+  color trailer are parsed; arbitrary header, pointer, and machine-menu generation
+  remains.
 - The local compatibility corpus contains 2,673 PES files. The current strict PES v1
   parser accepts 2,539 of them; newer versions and 43 nonstandard v1 files remain
   explicit unsupported cases. `scripts/catalog-pes.mjs` reproduces the inventory.
@@ -55,13 +56,19 @@ Source repository: <https://github.com/breimt/Stitchin-Good>
   free capacity remains usable even when the previous card layout was fragmented.
 - A dependency-free JavaScript implementation of the proven packet primitives is in
   [`app/src/protocol/ecs.js`](app/src/protocol/ecs.js), with tests.
-- The current automated suite passes 26 tests covering protocol packets, card status,
+- The current automated suite passes 41 tests covering protocol packets, card status,
   PES parsing, golden design blobs, search metadata, capacity checks, and compacted
   placement, plus the desktop UI safety contract.
 - The captured image's design region and color trailer can now be parsed and exported.
   The remaining critical unknown is how to generate every header/menu/pointer record
   for arbitrary card contents. We will not perform writes from the replacement until
   complete generated images match Palette output and pass read-back verification.
+- A platform-independent write-transfer state machine is implemented behind the
+  safety boundary and tested entirely against simulated I/O. It is not exposed to
+  the desktop UI and cannot currently erase a physical card. An independent preflight
+  blocks erase unless authorization, current backup, output structure, capacity, and
+  writable-status checks all pass. Post-write verification reports the first byte
+  that differs and cannot report success unless the complete read-back matches.
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the product plan,
 [`docs/ECS_PROTOCOL.md`](docs/ECS_PROTOCOL.md) for the wire protocol, and

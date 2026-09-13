@@ -15,6 +15,7 @@ import {
   hasValidChecksum,
   parseBlockPacket,
   parseCardStatusResponse,
+  parseDeviceVersionResponse,
 } from "../src/protocol/ecs.js";
 
 test("command packets match bytes recovered from Palette 3", () => {
@@ -83,6 +84,16 @@ test("live CT response follows Palette's static status mapping", () => {
     writable: false,
     capacityBytes: 1024 * 1024,
   });
+});
+
+test("live identification fixtures validate device version and test block", () => {
+  assert.deepEqual(parseDeviceVersionResponse(Uint8Array.of(0x41, 0x01, 0x42)), {
+    rawVersion: 1,
+  });
+  const testData = Uint8Array.from({ length: 128 }, (_, index) => index);
+  const liveDeviceData = buildBlockPacket(0, testData);
+  assert.equal(liveDeviceData.at(-1), 0xc1);
+  assert.deepEqual(parseBlockPacket(liveDeviceData).data, testData);
 });
 
 test("capacity converts to the observed 128-byte block counts", () => {

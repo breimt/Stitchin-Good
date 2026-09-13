@@ -159,6 +159,17 @@ export function parseCardStatusResponse(packet) {
   return decodeCardStatus(packet[1]);
 }
 
+/** Validate the three-byte response returned by the CV device-version query. */
+export function parseDeviceVersionResponse(packet) {
+  asBytes(packet, "packet");
+  if (packet.length !== 3) throw new RangeError("device version response must be three bytes");
+  if (packet[0] !== ECS.RESPONSE_PREFIX) {
+    throw new Error("device version response does not begin with the response prefix");
+  }
+  if (!hasValidChecksum(packet)) throw new Error("device version response checksum is invalid");
+  return Object.freeze({ rawVersion: packet[1] });
+}
+
 /** Number of 128-byte blocks used by a supported card capacity. */
 export function blockCountForCapacity(capacityBytes) {
   if (!Number.isInteger(capacityBytes) || capacityBytes <= 0 ||

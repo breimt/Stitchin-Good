@@ -1,4 +1,5 @@
-import { buildCommand, COMMAND, ECS, parseBlockPacket, parseCardStatusResponse } from "../src/protocol/ecs.js";
+import { buildCommand, COMMAND, ECS, parseCardStatusResponse } from "../src/protocol/ecs.js";
+import { readCardStorage } from "../src/protocol/ecs-transfer.js";
 
 const elements = {
   search: document.querySelector("#search"), folder: document.querySelector("#folder"),
@@ -45,7 +46,7 @@ function formatBytes(bytes) {
 }
 
 function selectedBytes() {
-  return [...selected.values()].reduce((sum, record) => sum + (record.cardBlobBytes ?? 0), 0);
+  return [...selected.values()].reduce((sum, record) => sum + (record.cardStorageBytes ?? 0), 0);
 }
 
 function updateCapacity() {
@@ -107,7 +108,7 @@ function updateSelection() {
       name.title = record.fileName;
       const bytes = document.createElement("span");
       bytes.className = "selection-bytes";
-      bytes.textContent = formatBytes(record.cardBlobBytes);
+      bytes.textContent = formatBytes(record.cardStorageBytes);
       const remove = document.createElement("button");
       remove.className = "remove-selection";
       remove.type = "button";
@@ -281,7 +282,7 @@ async function openDesignDetails(record, source = "library") {
       detailMetadataRow("Thread steps", design.steps.length.toLocaleString()),
       detailMetadataRow("PES version", String(design.pesVersion)),
       detailMetadataRow("Source size", formatBytes(design.pesBytes)),
-      detailMetadataRow("Card space", formatBytes(design.cardBlobBytes)),
+      detailMetadataRow("Card space", formatBytes(design.cardStorageBytes ?? design.cardBlobBytes)),
     );
     elements.stepCount.textContent = `${design.steps.length} ${design.steps.length === 1 ? "step" : "steps"}`;
     elements.stepList.replaceChildren(...design.steps.map((step) => {
@@ -366,7 +367,7 @@ function renderDesign(record) {
       detail("Size", `${record.widthMm.toFixed(1)} × ${record.heightMm.toFixed(1)} mm`),
       detail("Stitches", record.stitchCount.toLocaleString()),
       detail("Colors", record.colorCount.toLocaleString()),
-      detail("Card", formatBytes(record.cardBlobBytes), "card-cost"),
+      detail("Card", formatBytes(record.cardStorageBytes), "card-cost"),
     );
   } else {
     const reason = document.createElement("span");
@@ -518,46 +519,18 @@ async function transferCardImage(port, maximumBlocks, onProgress) {
   const reader = port.readable.getReader();
   const writer = port.writable.getWriter();
   const incoming = new SerialByteReader(reader);
-  const blocks = [];
-  let terminalAck = false;
+  const channel = {
+    write: (bytes) => writer.write(bytes),
+    readExactly: (length) => incoming.exactly(length),
+  };
   try {
-    await writer.write(buildCommand(COMMAND.BEGIN_READ));
-    const begin = (await incoming.exactly(1))[0];
-    if (begin !== ECS.ACK) throw new Error(`The ECS rejected the read command (response ${begin.toString(16).padStart(2, "0")}).`);
-
-    for (let blockIndex = 0; blockIndex < maximumBlocks; blockIndex += 1) {
-      let accepted = false;
-      let control = ECS.ACK;
-      for (let attempt = 1; attempt <= 4 && !accepted; attempt += 1) {
-        await writer.write(Uint8Array.of(control));
-        const first = (await incoming.exactly(1))[0];
-        if (first === ECS.ACK) {
-          terminalAck = true;
-          break;
-        }
-        if (first === ECS.NAK) {
-          control = ECS.NAK;
-          continue;
-        }
-        const packet = new Uint8Array(ECS.BLOCK_PACKET_SIZE);
-        packet[0] = first;
-        packet.set(await incoming.exactly(ECS.BLOCK_PACKET_SIZE - 1), 1);
-        try {
-          const parsed = parseBlockPacket(packet);
-          if (parsed.blockIndex !== blockIndex) throw new Error("block index mismatch");
-          blocks.push(parsed.data);
-          accepted = true;
-        } catch {
-          control = ECS.NAK;
-        }
-      }
-      if (terminalAck) break;
-      if (!accepted) throw new Error(`Card block ${blockIndex.toLocaleString()} failed validation four times.`);
-      if (blocks.length === 1 || blocks.length % 8 === 0) onProgress(blocks.length, blocks.length * ECS.BLOCK_SIZE);
-    }
-    if (!terminalAck) await writer.write(Uint8Array.of(ECS.ACK));
+    return await readCardStorage(channel, {
+      maximumBlocks,
+      onProgress: ({ blockCount, bytesRead }) => {
+        if (blockCount === 1 || blockCount % 8 === 0) onProgress(blockCount, bytesRead);
+      },
+    });
   } catch (error) {
-    try { await writer.write(Uint8Array.of(ECS.CAN)); } catch {}
     try { await reader.cancel(); } catch {}
     throw error;
   } finally {
@@ -565,10 +538,6 @@ async function transferCardImage(port, maximumBlocks, onProgress) {
     writer.releaseLock();
   }
 
-  if (blocks.length === 0) throw new Error("The card returned no data blocks.");
-  const image = new Uint8Array(blocks.length * ECS.BLOCK_SIZE);
-  blocks.forEach((block, index) => image.set(block, index * ECS.BLOCK_SIZE));
-  return image;
 }
 
 async function readInsertedCard() {

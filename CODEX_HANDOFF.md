@@ -57,7 +57,23 @@ validated and the ambiguous `0x21` status is resolved or independently proven sa
   enabled; Export All includes both reconstructed PES files and the exact image.
 - `app/src/formats/card-image.js` validates the captured P7H layout and trailer and
   reconstructs PES v1 recovery files. All three exports round-trip to their exact
-  original card blobs. The suite passes 26 tests. No erase/write command was sent.
+  original card blobs. No erase/write command was sent.
+- Added a platform-independent ECS transfer state machine and switched the live UI
+  reader to it. Simulated tests cover read terminal ACK, corrupt-packet NAK/retry,
+  write NAK/retry, cancellation, progress, and invalid inputs. The write function is
+  deliberately not connected to Web Serial or the UI.
+- Added a pure seven-gate write preflight. It requires user authorization, a proven
+  writable status, a structurally valid latest read, an exact matching backup, a
+  structurally valid output package, observed-capacity agreement, and reported-
+  capacity agreement. Status `21` currently fails both status and capacity gates.
+- Non-destructive live probes confirmed `CI -> 06`, `CV -> 41 01 42`, a valid
+  132-byte `CD` test block, and stable `CT -> 41 21 62`. No erase/write command was
+  sent. Exact per-design storage cost now includes its directory and color-table
+  growth; the golden three-design plan independently totals `0x14210` occupied bytes.
+- An independent write-package validator now checks standard capacity, contiguous
+  design extents, directory placement, calculated storage totals, and a fully erased
+  `0xFF` tail. Post-write comparison identifies the first mismatched byte.
+- The suite now passes 41 tests.
 
 ## Resume here next session
 

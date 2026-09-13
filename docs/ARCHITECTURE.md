@@ -103,18 +103,23 @@ inside one active transfer when the device returns NAK or a checksum fails.
 - Read a card to a backup file and parse its design directory.
 - Test on Windows, then on the target Mac and USB-serial adapter.
 
-The Electron shell now implements the first part of this milestone: a Web Serial
-device chooser, explicit 9600 8-N-1 open, ECS-compatible RTS/DTR signals, and a
-read-only `CT` status query. The production transport still needs tested baud
-negotiation, complete reads, cancellation, disconnect recovery, and validation on
-the target Mac. Web Serial requires close/reopen to change baud; that behavior must
-be proven against this vintage ECS before it is used for full block transfers.
+The Electron shell now implements device selection, explicit 9600 8-N-1 open,
+ECS-compatible RTS/DTR signals, status queries, and a complete checksum-validated
+read through terminal ACK. The same platform-independent state machine is exercised
+with simulated I/O. A write state machine now has ACK/NAK/retry/cancel tests but is
+not connected to the physical UI. Baud negotiation, disconnect recovery, and target
+Mac validation remain.
 
 ### M4 - guarded writes
 
 - Implement erase, block write, read-back, and verification.
 - Test first with the rewritable card whose contents are known to be disposable.
 - Confirm the resulting card in the Baby Lock Esante ESe.
+
+Before erase, a pure preflight requires explicit authorization, a backup matching
+the latest card read, independently parseable input/output layouts, exact observed
+capacity, a consistent reported capacity, and a status proven writable. No single
+override bypasses the remaining checks.
 
 ### M5 - Mac handoff
 

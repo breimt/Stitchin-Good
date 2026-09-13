@@ -307,6 +307,7 @@ function registerIpc() {
       pesVersion: 1,
       pesBytes: pes.length,
       cardBlobBytes: record.length,
+      cardStorageBytes: record.length + 9 + record.colorCount,
       previewSvg: stitchPlanSvg(plan),
       steps: plan.steps.map((step) => ({
         number: step.number,

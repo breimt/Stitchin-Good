@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { planCompactedDesignRegion } from "../src/formats/card-layout.js";
+import {
+  designStorageBytes,
+  planCompactedDesignRegion,
+  summarizeCardStorage,
+} from "../src/formats/card-layout.js";
 
 test("golden design lengths compact to their observed consecutive offsets", () => {
   const plan = planCompactedDesignRegion([
@@ -44,4 +48,22 @@ test("invalid layout inputs fail closed", () => {
   assert.throws(() => planCompactedDesignRegion([], {}), /endOffset/);
   assert.throws(() => planCompactedDesignRegion([{}], { endOffset: 20_000 }), /Uint8Array/);
   assert.throws(() => planCompactedDesignRegion([], { startOffset: 20, endOffset: 10 }), /precede/);
+});
+
+test("storage summary exactly matches the confirmed three-design occupied extent", () => {
+  const designs = [
+    { cardBlobBytes: 21_515, colorCount: 5 },
+    { cardBlobBytes: 32_275, colorCount: 12 },
+    { cardBlobBytes: 12_223, colorCount: 5 },
+  ];
+  assert.equal(designStorageBytes(designs[0]), 21_529);
+  assert.deepEqual(summarizeCardStorage(designs, 128 * 1024), {
+    capacityBytes: 131_072,
+    headerBytes: 16_384,
+    payloadBytes: 66_013,
+    directoryBytes: 51,
+    occupiedBytes: 82_448,
+    freeBytes: 48_624,
+    fits: true,
+  });
 });

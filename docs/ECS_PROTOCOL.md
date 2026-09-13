@@ -56,6 +56,22 @@ five rates:
 The third column is the wire packet, not a textual line. Packet traces are still
 needed to confirm the exact negotiation sequence used by this physical ECS.
 
+## Live identification probes
+
+On 2026-09-13 the replacement sent only four non-destructive query commands to the
+connected ECS at 9600 baud:
+
+| Query | Response | Interpretation |
+| --- | --- | --- |
+| `CI` | `06` | writer acknowledged identification |
+| `CV` | `41 01 42` | response prefix, device version `01`, valid checksum |
+| `CD` | 132-byte indexed packet | block 0 containing bytes `00` through `7f`, valid framing/checksum |
+| `CT` | `41 21 62` | stable card status `21`, valid checksum |
+
+This independently confirms the command checksum, response checksum, and full block
+packet implementations. Status `21` remained unchanged and is not a transient serial
+read error. No erase or write command was sent.
+
 ## Card status and capacity
 
 The middle byte of the three-byte `CT` response selects capacity and whether Palette
@@ -111,7 +127,7 @@ Codes `00`, `0f`, and `11` are recognized by Palette but their user-facing meani
 still need a live trace or complete control-flow mapping. Unknown codes must fail
 closed in the replacement.
 
-## Probable high-level transfers (needs trace confirmation)
+## High-level transfers
 
 Read appears to be:
 
@@ -122,7 +138,7 @@ Read appears to be:
 5. validate index/checksum, using cancel/retry control bytes when needed;
 6. send a final ACK and return to the base speed.
 
-Write appears to be:
+Static analysis indicates write is:
 
 1. identify/probe and negotiate speed;
 2. query and require a writable original card;
