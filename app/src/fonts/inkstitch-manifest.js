@@ -14,6 +14,8 @@ export function parseInkstitchFontManifest(input) {
   const nominalSizeMm = finitePositive(value.size, "size");
   const defaultAdvance = finitePositive(value.horiz_adv_x_default, "horiz_adv_x_default");
   const advances = Object.freeze({ ...(value.horiz_adv_x ?? {}) });
+  const spaceAdvance = finitePositive(value.horiz_adv_x_space ?? advances[" "] ?? defaultAdvance,
+    "horiz_adv_x_space");
   const kerning = Object.freeze({ ...(value.kerning_pairs ?? {}) });
   for (const [glyph, advance] of Object.entries(advances)) finitePositive(advance, `advance for ${glyph}`);
   for (const [pair, amount] of Object.entries(kerning)) {
@@ -21,7 +23,7 @@ export function parseInkstitchFontManifest(input) {
   }
   return Object.freeze({ name: value.name.trim(), glyphs: Object.freeze([...new Set(value.glyphs)]),
     defaultGlyph: typeof value.default_glyph === "string" ? value.default_glyph : "",
-    unitsPerEm, nominalSizeMm, defaultAdvance, advances, kerning });
+    unitsPerEm, nominalSizeMm, defaultAdvance, spaceAdvance, advances, kerning });
 }
 
 /** Calculate deterministic glyph origins/width before stitch generation. */
@@ -37,9 +39,18 @@ export function layoutInkstitchText(manifest, text, options = {}) {
   let cursorUnits = 0;
   let previous = null;
   for (const requested of text) {
+    if (requested === " ") {
+      cursorUnits += font.spaceAdvance;
+      previous = null;
+      continue;
+    }
     const glyph = available.has(requested) ? requested : font.defaultGlyph;
     if (!available.has(requested)) missing.push(requested);
-    if (!glyph || !available.has(glyph)) continue;
+    if (!glyph || !available.has(glyph)) {
+      cursorUnits += font.defaultAdvance;
+      previous = null;
+      continue;
+    }
     if (previous != null) cursorUnits -= font.kerning[`${previous} ${glyph}`] ?? 0;
     placements.push(Object.freeze({ glyph, requested, xMm: cursorUnits * mmPerUnit }));
     cursorUnits += font.advances[glyph] ?? font.defaultAdvance;

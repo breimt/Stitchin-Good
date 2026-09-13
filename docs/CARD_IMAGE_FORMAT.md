@@ -90,6 +90,23 @@ exports are recovery files rather than byte-identical copies of the source PES.
   consistent with independent open-source card-image research. Their exact Palette 3
   semantics are not yet proven for this image.
 
+## Do not mix image families
+
+The public 40-pin experiments primarily contain 512 KiB `DRAGON3 Project` images
+whose headers begin with Brother copyright/runtime text. Those images use three-byte
+banked pointers (`low`, `high`, `0x40 + bank`), with documented structures around
+`0x00a1`, `0x0157`, `0x1000`, and `0x4299`. The official Card No. 52 example also
+contains LCD/menu resources and 31 designs.
+
+Our ECS-written 128 KiB image instead begins `brother_embP7H`, starts its design blobs
+at `0x4000`, and uses the compact trailer described above. Similar-looking pointer
+bytes do not justify transplanting a `DRAGON3` header into a P7H image. The new
+`scripts/analyze-card-images.mjs` tool can compare equal-sized dumps, enumerate
+candidate banked pointers, and extract embedded strings while keeping the underlying
+commercial data local and git-ignored.
+
+Reference research: <https://github.com/bezmi/brother_embroidery_card_experiments>.
+
 ## Safety boundary
 
 The payload and captured read directory/color trailer are solved enough for safe

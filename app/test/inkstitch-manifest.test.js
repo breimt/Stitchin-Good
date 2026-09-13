@@ -5,7 +5,8 @@ import { layoutInkstitchText, parseInkstitchFontManifest }
 
 const manifest = {
   name: "Test Satin", glyphs: ["A", "V", "?"], default_glyph: "?", units_per_em: 100,
-  size: 10, horiz_adv_x_default: 50, horiz_adv_x: { A: 60, V: 55, "?": 40 },
+  size: 10, horiz_adv_x_default: 50, horiz_adv_x_space: 30,
+  horiz_adv_x: { A: 60, V: 55, "?": 40 },
   kerning_pairs: { "A V": 10 },
 };
 
@@ -26,4 +27,10 @@ test("text layout applies advances, kerning, scale, and default glyphs", () => {
   ]);
   assert.equal(run.widthMm, 29);
   assert.deepEqual(run.missingGlyphs, ["X"]);
+
+  const spaced = layoutInkstitchText(manifest, "A V");
+  assert.deepEqual(spaced.placements.map(({ glyph, xMm }) => ({ glyph, xMm })), [
+    { glyph: "A", xMm: 0 }, { glyph: "V", xMm: 9 },
+  ]);
+  assert.equal(spaced.widthMm, 14.5);
 });
