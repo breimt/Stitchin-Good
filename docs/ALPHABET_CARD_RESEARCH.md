@@ -28,6 +28,10 @@ glyph geometry and stitch-routing knowledge. Its font folders use `font.json` pl
 one or more glyph-layer SVG files. These are useful source glyphs, but their metadata
 is for Ink/Stitch's lettering tool—not the Esante card menu—and cannot be copied into
 a Brother card unchanged.
+The replacement now has a dependency-free parser and deterministic spacing engine for
+these `font.json` manifests. It understands glyph coverage, advances, kerning,
+fallback glyphs, and physical scaling. Converting the SVG embroidery instructions to
+stitches is intentionally not conflated with this metadata step.
 
 Sources:
 

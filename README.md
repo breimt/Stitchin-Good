@@ -56,7 +56,7 @@ Source repository: <https://github.com/breimt/Stitchin-Good>
   free capacity remains usable even when the previous card layout was fragmented.
 - A dependency-free JavaScript implementation of the proven packet primitives is in
   [`app/src/protocol/ecs.js`](app/src/protocol/ecs.js), with tests.
-- The current automated suite passes 56 tests covering protocol packets, card status,
+- The current automated suite passes 58 tests covering protocol packets, card status,
   PES parsing, golden design blobs, search metadata, capacity checks, and compacted
   placement, plus the desktop UI safety contract.
 - The captured image's design region and color trailer can now be parsed and exported.

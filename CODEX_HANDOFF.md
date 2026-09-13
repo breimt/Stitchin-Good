@@ -105,7 +105,10 @@ validated and the ambiguous `0x21` status is resolved or independently proven sa
   patterns are separate modes; Card No. 1/SA298 may be individual letter designs,
   not an installable typing font. `docs/ALPHABET_CARD_RESEARCH.md` records the
   inference, evidence required to overturn it, and the honest app-side fallback.
-- The suite now passes 56 tests.
+- Added a dependency-free Ink/Stitch `font.json` parser and deterministic text-metric
+  layout core covering glyph fallback, advances, kerning, and physical scaling. It
+  does not yet convert Ink/Stitch SVG embroidery instructions into stitches.
+- The suite now passes 58 tests.
 
 ## Resume here next session
 
