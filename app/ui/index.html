@@ -99,6 +99,25 @@
           </dl>
         </section>
 
+        <section class="panel-section card-contents-section">
+          <div class="section-heading">
+            <h2>On card</h2>
+            <span id="card-design-count" class="muted">Not read</span>
+          </div>
+          <button id="read-card" class="secondary full-width" type="button" disabled>Read inserted card</button>
+          <div id="read-progress" class="read-progress" hidden>
+            <progress></progress>
+            <span id="read-progress-label">Starting read…</span>
+          </div>
+          <div id="card-file-list" class="card-file-list">
+            <p class="empty-selection">Read the inserted card to view and recover its designs.</p>
+          </div>
+          <div class="card-export-actions">
+            <button id="export-all-card" class="secondary" type="button" disabled>Export all</button>
+            <button id="save-card-backup" class="secondary" type="button" disabled>Save raw backup</button>
+          </div>
+        </section>
+
         <section class="panel-section selection-section">
           <div class="section-heading">
             <h2>Selected</h2>

@@ -25,9 +25,12 @@ Source repository: <https://github.com/breimt/Stitchin-Good>
   write, according to the 2026-09-11 session report.
 - Static analysis has identified the ECS framing, checksums, control bytes, baud
   negotiation, card-status codes, and 128-byte block transfer protocol.
-- A non-destructive, checksum-validated read captured a 128 KiB card image. The user
-  confirmed its three matched PES files, making it the first golden card-image
-  fixture. Captures are intentionally git-ignored.
+- The desktop app now performs a non-destructive, checksum-validated card read,
+  recognizes the 128 KiB golden image, lists its three designs, reports exact
+  occupied/free space, and matches all three to their local library sources.
+- Card designs can be previewed with their full thread sequence and exported one at
+  a time or together as reconstructed PES v1 files. Export All also includes a
+  byte-for-byte `.img` backup, and the raw backup can be saved separately.
 - The cross-platform PES v1 parser now reproduces all three card design blobs exactly:
   66,013 bytes match the capture byte-for-byte. The remaining image-format work is
   the card directory, pointers, color/menu tables, and trailer.
@@ -41,9 +44,10 @@ Source repository: <https://github.com/breimt/Stitchin-Good>
 - The card inspector shows the exact transformed byte cost of every design and the
   combined pending selection. It deliberately leaves existing/free space unknown
   until an inserted card has been read and its directory can be validated.
-- The Electron shell has a cross-platform Web Serial chooser and read-only 9600-baud
-  `CT` card-status probe. This is the first macOS-capable hardware path, but full
-  read/baud negotiation and guarded writing are not implemented yet.
+- The Electron shell has a cross-platform Web Serial chooser, read-only card-status
+  probe, and full block reader at the conservative 9600-baud base speed. The reader
+  recognizes the writer's terminal ACK rather than trusting the ambiguous `0x21`
+  capacity mapping. Guarded writing is not implemented yet.
 - Library thumbnails are rendered from the actual color-separated PEC stitch stream,
   not the low-resolution machine-menu icon. A click opens full metadata and the
   ordered, isolated preview/color/stitch count for every thread step.
@@ -51,13 +55,13 @@ Source repository: <https://github.com/breimt/Stitchin-Good>
   free capacity remains usable even when the previous card layout was fragmented.
 - A dependency-free JavaScript implementation of the proven packet primitives is in
   [`app/src/protocol/ecs.js`](app/src/protocol/ecs.js), with tests.
-- The current automated suite passes 21 tests covering protocol packets, card status,
+- The current automated suite passes 26 tests covering protocol packets, card status,
   PES parsing, golden design blobs, search metadata, capacity checks, and compacted
   placement, plus the desktop UI safety contract.
-- The remaining critical unknown is the binary card-image layout that Palette builds
-  from PES/PEC data, thumbnails, metadata, and menus. We will not perform writes from
-  the replacement until generated images match captured Palette output and pass
-  read-back verification.
+- The captured image's design region and color trailer can now be parsed and exported.
+  The remaining critical unknown is how to generate every header/menu/pointer record
+  for arbitrary card contents. We will not perform writes from the replacement until
+  complete generated images match Palette output and pass read-back verification.
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the product plan,
 [`docs/ECS_PROTOCOL.md`](docs/ECS_PROTOCOL.md) for the wire protocol, and

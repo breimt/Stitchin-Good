@@ -6,11 +6,17 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 
 import { searchDesignRecords } from "./catalog/design-catalog.js";
 import { scanDesignLibrary } from "./catalog/node-library.js";
-import { decodePecColorThumbnail, decodePecStitchPlan } from "./formats/pes-v1.js";
+import {
+  buildPesV1FromCardDesign,
+  parseEcsCardImage,
+  verifyReconstructedDesign,
+} from "./formats/card-image.js";
+import { buildEcsDesignBlob, decodePecColorThumbnail, decodePecStitchPlan } from "./formats/pes-v1.js";
 
 const sourceDirectory = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow;
 let currentLibrary = null;
+let currentCard = null;
 const thumbnailCache = new Map();
 let serialSelectionCallback = null;
 let serialAccessConfigured = false;
@@ -70,6 +76,96 @@ async function loadLibrary(libraryPath, { persist = false } = {}) {
 
 function designById(id) {
   return currentLibrary?.records.find((record) => record.id === id) ?? null;
+}
+
+function cardDesignById(id) {
+  return currentCard?.designs.find((record) => record.id === id) ?? null;
+}
+
+function bytesEqual(left, right) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+async function matchLibraryRecord(cardDesign) {
+  const candidates = currentLibrary?.records.filter((record) =>
+    record.supported && record.cardBlobBytes === cardDesign.length) ?? [];
+  for (const record of candidates) {
+    try {
+      const pes = await fs.readFile(record.filePath);
+      if (bytesEqual(buildEcsDesignBlob(pes), cardDesign.bytes)) return record;
+    } catch {
+      // A library file can disappear after indexing; it simply cannot supply a name.
+    }
+  }
+  return null;
+}
+
+async function inspectCardImage(value) {
+  const bytes = value instanceof Uint8Array
+    ? value
+    : value instanceof ArrayBuffer ? new Uint8Array(value) : null;
+  if (!bytes) throw new TypeError("card image must be a Uint8Array");
+  currentCard = Object.freeze({ bytes: bytes.slice(), parsed: null, designs: Object.freeze([]) });
+  const parsed = parseEcsCardImage(bytes);
+  const designs = [];
+  for (const design of parsed.designs) {
+    const match = await matchLibraryRecord(design);
+    designs.push(Object.freeze({
+      ...design,
+      label: match?.fileName.replace(/\.pes$/i, "") || match?.label || design.label,
+      originalLabel: design.label,
+      fileName: match?.fileName ?? null,
+      relativePath: match?.relativePath ?? null,
+      sourceMatched: Boolean(match),
+    }));
+  }
+  currentCard = Object.freeze({ bytes: bytes.slice(), parsed, designs: Object.freeze(designs) });
+  return publicCard();
+}
+
+function publicCard() {
+  if (!currentCard) return null;
+  return {
+    capacityBytes: currentCard.parsed.capacityBytes,
+    occupiedBytes: currentCard.parsed.occupiedBytes,
+    freeBytes: currentCard.parsed.freeBytes,
+    designCount: currentCard.designs.length,
+    designs: currentCard.designs.map((design) => ({
+      id: design.id,
+      label: design.label,
+      fileName: design.fileName,
+      relativePath: design.relativePath,
+      sourceMatched: design.sourceMatched,
+      cardBytes: design.length,
+      widthMm: design.widthMm,
+      heightMm: design.heightMm,
+      colorCount: design.colorCount,
+      stitchCount: design.stitches,
+    })),
+  };
+}
+
+function cardDesignPes(record) {
+  const pes = buildPesV1FromCardDesign(record, record.label);
+  if (!verifyReconstructedDesign(record, pes)) throw new Error("exported PES did not preserve the card design payload");
+  return pes;
+}
+
+function safeFileBase(value) {
+  const base = String(value).replace(/[<>:"/\\|?*\x00-\x1f]/g, " ").replace(/[. ]+$/g, "").trim();
+  return base || "Card Design";
+}
+
+async function nextAvailablePath(directory, baseName, extension) {
+  for (let suffix = 0; suffix < 10_000; suffix += 1) {
+    const candidate = path.join(directory, `${baseName}${suffix === 0 ? "" : ` (${suffix + 1})`}${extension}`);
+    try {
+      await fs.access(candidate);
+    } catch {
+      return candidate;
+    }
+  }
+  throw new Error("could not choose a unique export file name");
 }
 
 function thumbnailSvg(thumbnail, { cropContent = false, background = "#181818" } = {}) {
@@ -184,6 +280,87 @@ function registerIpc() {
       previewSvg: stitchPlanSvg(plan, step.number),
     }));
     return { ...publicRecord(record), previewSvg, steps };
+  });
+
+  ipcMain.handle("card:inspect", async (_event, bytes) => inspectCardImage(bytes));
+
+  ipcMain.handle("card:thumbnail", (_event, id) => {
+    const record = cardDesignById(id);
+    if (!record) return null;
+    return stitchPlanSvg(decodePecStitchPlan(cardDesignPes(record)));
+  });
+
+  ipcMain.handle("card:details", (_event, id) => {
+    const record = cardDesignById(id);
+    if (!record) return null;
+    const pes = cardDesignPes(record);
+    const plan = decodePecStitchPlan(pes);
+    return {
+      id: record.id,
+      label: record.label,
+      fileName: record.fileName ?? `${record.originalLabel}.pes`,
+      relativePath: record.relativePath ?? "Stored on inserted card",
+      widthMm: record.widthMm,
+      heightMm: record.heightMm,
+      stitchCount: record.stitches,
+      colorCount: record.colorCount,
+      pesVersion: 1,
+      pesBytes: pes.length,
+      cardBlobBytes: record.length,
+      previewSvg: stitchPlanSvg(plan),
+      steps: plan.steps.map((step) => ({
+        number: step.number,
+        paletteIndex: step.paletteIndex,
+        color: step.color,
+        colorName: step.colorName,
+        stitchCount: step.stitchCount,
+        previewSvg: stitchPlanSvg(plan, step.number),
+      })),
+    };
+  });
+
+  ipcMain.handle("card:save-backup", async () => {
+    if (!currentCard) throw new Error("read a card before saving a backup");
+    const date = new Date().toISOString().slice(0, 10);
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: "Save exact card backup",
+      defaultPath: `ECS-card-backup-${date}.img`,
+      filters: [{ name: "ECS card image", extensions: ["img"] }],
+    });
+    if (result.canceled || !result.filePath) return null;
+    await fs.writeFile(result.filePath, currentCard.bytes);
+    return result.filePath;
+  });
+
+  ipcMain.handle("card:export-design", async (_event, id) => {
+    const record = cardDesignById(id);
+    if (!record) throw new Error("card design is no longer available");
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: "Export design from card",
+      defaultPath: `${safeFileBase(record.label)}.pes`,
+      filters: [{ name: "Brother PES design", extensions: ["pes"] }],
+    });
+    if (result.canceled || !result.filePath) return null;
+    await fs.writeFile(result.filePath, cardDesignPes(record));
+    return result.filePath;
+  });
+
+  ipcMain.handle("card:export-all", async () => {
+    if (!currentCard) throw new Error("read a card before exporting designs");
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: "Choose a folder for the card export",
+      properties: ["openDirectory", "createDirectory"],
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    const date = new Date().toISOString().slice(0, 10);
+    const exportDirectory = await nextAvailablePath(result.filePaths[0], `ECS Card Export ${date}`, "");
+    await fs.mkdir(exportDirectory);
+    for (const [index, record] of currentCard.designs.entries()) {
+      const numbered = `${String(index + 1).padStart(2, "0")} - ${safeFileBase(record.label)}`;
+      await fs.writeFile(path.join(exportDirectory, `${numbered}.pes`), cardDesignPes(record));
+    }
+    await fs.writeFile(path.join(exportDirectory, "card-backup.img"), currentCard.bytes);
+    return { directory: exportDirectory, count: currentCard.designs.length };
   });
 
   ipcMain.on("serial:select-port", (_event, portId) => {

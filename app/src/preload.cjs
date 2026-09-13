@@ -16,3 +16,12 @@ contextBridge.exposeInMainWorld("ecsSerial", Object.freeze({
   },
   selectPort: (portId) => ipcRenderer.send("serial:select-port", portId),
 }));
+
+contextBridge.exposeInMainWorld("ecsCard", Object.freeze({
+  inspect: (bytes) => ipcRenderer.invoke("card:inspect", bytes),
+  thumbnail: (id) => ipcRenderer.invoke("card:thumbnail", id),
+  details: (id) => ipcRenderer.invoke("card:details", id),
+  saveBackup: () => ipcRenderer.invoke("card:save-backup"),
+  exportDesign: (id) => ipcRenderer.invoke("card:export-design", id),
+  exportAll: () => ipcRenderer.invoke("card:export-all"),
+}));

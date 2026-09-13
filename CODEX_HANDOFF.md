@@ -34,10 +34,14 @@ Last worked: 2026-09-13 (America/Chicago)
   Developer ID signing/notarization and target-Mac adapter-driver validation remain.
 - A live Electron smoke check opened the local `067B:23A3` adapter at 9600 baud and
   received card status `21`; step images loaded and backdrop-close behavior passed.
-- New requested workflow: read and list designs currently on an inserted card, export
-  one or all as reconstructed machine-readable files, and always offer a raw image
-  backup. Card payloads are transformed data, not original PES containers, so export
-  must reconstruct a valid PES/PEC instead of claiming byte-identical recovery.
+- Implemented and live-tested the requested recovery workflow. Electron read all
+  1,024 checksum-validated blocks from the inserted card, honored its terminal ACK,
+  parsed three designs, matched all three to the local library, and reported 80.5 KiB
+  occupied / 47.5 KiB free. Individual Export, Export All, and raw `.img` backup are
+  enabled; Export All includes both reconstructed PES files and the exact image.
+- `app/src/formats/card-image.js` validates the captured P7H layout and trailer and
+  reconstructs PES v1 recovery files. All three exports round-trip to their exact
+  original card blobs. The suite passes 26 tests. No erase/write command was sent.
 
 ## Resume here next session
 
@@ -52,20 +56,17 @@ outside the workspace as
 on GitHub with write access. The earlier encrypted key was deleted both locally and
 from GitHub. Never commit or print the private key.
 
-The immediate engineering task is to finish the card-image builder around the
-already byte-exact PES v1 design blobs. Recover and test the directory, pointer,
-color/menu, padding, and trailer records from the existing ignored golden capture.
-The builder must compact selected designs into sequential placements so fragmented
-free space is usable in aggregate. Do not preserve holes from the old card layout,
-and reject the selection only when its compacted total exceeds capacity. Keep all
-physical writes disabled until a complete generated image matches the captured image
-and passes independent structural validation.
+The next engineering task is to finish the arbitrary card-image builder around the
+byte-exact PES v1 design blobs and now-validated read parser. Recover and test the
+remaining header, pointer, menu, and allocation semantics using additional zero-,
+one-, and two-design fixtures. The builder must compact selected designs so aggregate
+free space remains usable. Keep all physical writes disabled until a complete image
+matches Palette output and passes independent structural validation.
 
-After that, connect the read-only hardware path to the desktop workflow, implement
-the serial transport behind the platform-independent protocol layer, and only then
-add guarded erase/write/read-back verification. Palette is not part of this workflow
-and must not be launched for test writes. The card was last reported inserted in the
-ECS writer on COM3, but re-detect device and card state at the start of a new session.
+The read-only hardware path and recovery workflow are implemented. Next, add guarded
+erase/write/read-back verification only after the builder gate above. Palette is not
+part of this workflow and must not be launched for test writes. The card was last
+read successfully from the ECS writer on COM3 at 9600 baud.
 
 ## 2026-09-11 update
 

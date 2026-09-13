@@ -1,7 +1,7 @@
 # Palette 3 card-image format
 
-Status: partial, with the per-design payload proven byte-for-byte against one
-user-confirmed 128 KiB card image.
+Status: read path implemented for one user-confirmed 128 KiB P7H layout; arbitrary
+image generation is still intentionally disabled.
 
 ## Golden fixture
 
@@ -47,22 +47,48 @@ separator. The design blobs are concatenated with no alignment padding.
 The golden-fixture test proves that the three generated blobs exactly equal every
 card byte from `0x4000` through `0x141dc` (66,013 bytes total).
 
+## Confirmed read directory and color trailer
+
+The three design blobs end at `0x141dd`. For `N` designs, this capture then stores:
+
+```text
+[N repeated N times]
+[ff repeated N times]
+[N three-byte pointer records]
+[N two-byte zero records]
+[01 00]
+[N little-endian cumulative color offsets]
+[concatenated Brother PEC palette indexes]
+```
+
+Each design's color count equals its PEC icon-plane count minus one. The cumulative
+offsets and color-array lengths independently validate the discovered design count.
+The complete occupied region ends at `0x14210`, leaving 48,624 bytes free in the
+captured 131,072-byte image. `app/src/formats/card-image.js` fails closed unless the
+signature, thumbnail frames, stitch commands, terminators, design count, reserved
+records, and color offsets agree.
+
+The same module reconstructs standalone PES v1 exports. Tests prove that converting
+each export back to a card blob reproduces its exact captured design bytes. The card
+does not retain the original PES container, filename, or editable metadata, so these
+exports are recovery files rather than byte-identical copies of the source PES.
+
 ## Other observed regions
 
 - `0x0000` begins with ASCII `brother_embP7H`.
 - `0x0000` through `0x3fff` contains sparse control data, tables, and machine UI
   graphics. It is not ordinary PES data.
 - The three contiguous design blobs occupy `0x4000` through `0x141dc`.
-- A small generated trailer begins at `0x141dd`; the rest of the 128 KiB image is
-  mostly erased (`ff`) with sparse pointer targets/tables.
+- The parsed color trailer occupies `0x141dd` through `0x1420f`; the rest of the
+  128 KiB image is mostly erased (`ff`) with sparse pointer targets/tables.
 - Three-byte values ending in `40` or `41` appear to be encoded card-memory pointers,
   consistent with independent open-source card-image research. Their exact Palette 3
   semantics are not yet proven for this image.
 
 ## Safety boundary
 
-The per-design payload is solved, but the directory, pointer, color, menu, and trailer
-records are not. A complete image builder must reproduce those records before any
-replacement-generated image is sent to a physical card. The best next fixtures are
-Palette-generated images containing zero, one, and two small known designs; comparing
-them with this three-design image will isolate count, pointer, and allocation fields.
+The payload and captured read directory/color trailer are solved enough for safe
+listing and recovery. Pointer semantics and the header/menu records required to build
+arbitrary images are not. A complete image builder must reproduce those records before
+any replacement-generated image is sent to a physical card. The best next fixtures
+are Palette-generated images containing zero, one, and two small known designs.

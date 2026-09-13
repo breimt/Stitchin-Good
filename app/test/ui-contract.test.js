@@ -22,3 +22,9 @@ test("destructive transfer remains visibly disabled", () => {
   assert.match(html, /id="review-transfer"[^>]*disabled/);
   assert.match(html, /Writing not yet enabled/);
 });
+
+test("card actions start safely disabled until the writer and card are read", () => {
+  assert.match(html, /id="read-card"[^>]*disabled/);
+  assert.match(html, /id="export-all-card"[^>]*disabled/);
+  assert.match(html, /id="save-card-backup"[^>]*disabled/);
+});

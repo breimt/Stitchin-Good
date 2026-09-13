@@ -1,4 +1,4 @@
-import { buildCommand, COMMAND, parseCardStatusResponse } from "../src/protocol/ecs.js";
+import { buildCommand, COMMAND, ECS, parseBlockPacket, parseCardStatusResponse } from "../src/protocol/ecs.js";
 
 const elements = {
   search: document.querySelector("#search"), folder: document.querySelector("#folder"),
@@ -21,6 +21,10 @@ const elements = {
   detailFile: document.querySelector("#detail-file"), detailPreview: document.querySelector("#detail-preview"),
   detailMetadata: document.querySelector("#detail-metadata"), stepCount: document.querySelector("#step-count"),
   stepList: document.querySelector("#step-list"), closeDetails: document.querySelector("#close-details"),
+  readCard: document.querySelector("#read-card"), readProgress: document.querySelector("#read-progress"),
+  readProgressLabel: document.querySelector("#read-progress-label"), cardDesignCount: document.querySelector("#card-design-count"),
+  cardFileList: document.querySelector("#card-file-list"), exportAllCard: document.querySelector("#export-all-card"),
+  saveCardBackup: document.querySelector("#save-card-backup"),
 };
 
 const selected = new Map();
@@ -29,6 +33,9 @@ let libraryLoaded = false;
 let serialPort = null;
 let cardState = { capacityBytes: null, existingBytes: null, writable: false, kind: null };
 let detailObjectUrls = [];
+let cardObjectUrls = [];
+let cardDesigns = [];
+let cardReadInProgress = false;
 
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes)) return "—";
@@ -119,6 +126,93 @@ function updateSelection() {
   updateCapacity();
 }
 
+function clearCardUrls() {
+  for (const url of cardObjectUrls) URL.revokeObjectURL(url);
+  cardObjectUrls = [];
+}
+
+async function attachCardThumbnail(image, record) {
+  const svg = await window.ecsCard.thumbnail(record.id);
+  if (!svg || !image.isConnected) return;
+  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+  cardObjectUrls.push(url);
+  image.src = url;
+}
+
+async function exportCardDesign(record) {
+  try {
+    const savedPath = await window.ecsCard.exportDesign(record.id);
+    if (savedPath) updateWriter({ state: "connected", title: "Design exported", detail: savedPath });
+  } catch (error) {
+    updateWriter({ state: "error", title: "Export failed", detail: error.message });
+  }
+}
+
+function renderCardContents(card) {
+  clearCardUrls();
+  cardDesigns = card?.designs ?? [];
+  elements.cardDesignCount.textContent = card
+    ? `${card.designCount} ${card.designCount === 1 ? "design" : "designs"}`
+    : "Not read";
+  elements.exportAllCard.disabled = cardDesigns.length === 0;
+  elements.saveCardBackup.disabled = !card;
+
+  if (!card || cardDesigns.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-selection";
+    empty.textContent = card ? "No designs were found on this card." : "Read the inserted card to view and recover its designs.";
+    elements.cardFileList.replaceChildren(empty);
+    return;
+  }
+
+  elements.cardFileList.replaceChildren(...cardDesigns.map((record) => {
+    const item = document.createElement("article");
+    item.className = "card-file";
+    item.tabIndex = 0;
+    item.setAttribute("role", "button");
+    item.setAttribute("aria-label", `View ${record.label}`);
+    const preview = document.createElement("div");
+    preview.className = "card-file-preview";
+    const image = document.createElement("img");
+    image.alt = `Preview for ${record.label}`;
+    preview.append(image);
+    void attachCardThumbnail(image, record);
+    const info = document.createElement("div");
+    info.className = "card-file-info";
+    const name = document.createElement("span");
+    name.className = "card-file-name";
+    name.textContent = record.label;
+    const metadata = document.createElement("span");
+    metadata.className = "card-file-meta";
+    metadata.textContent = `${record.colorCount} colors · ${record.stitchCount.toLocaleString()} stitches · ${formatBytes(record.cardBytes)}`;
+    info.append(name, metadata);
+    if (record.sourceMatched) {
+      const match = document.createElement("span");
+      match.className = "card-file-match";
+      match.textContent = "Matched in local library";
+      match.title = record.relativePath;
+      info.append(match);
+    }
+    const save = document.createElement("button");
+    save.className = "text-button";
+    save.type = "button";
+    save.textContent = "Export";
+    save.addEventListener("click", (event) => {
+      event.stopPropagation();
+      void exportCardDesign(record);
+    });
+    const open = () => void openDesignDetails({ ...record, supported: true }, "card");
+    item.addEventListener("click", open);
+    item.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      open();
+    });
+    item.append(preview, info, save);
+    return item;
+  }));
+}
+
 function detail(label, value, className = "") {
   const item = document.createElement("span");
   if (className) item.className = className;
@@ -153,7 +247,7 @@ function clearDetailUrls() {
   detailObjectUrls = [];
 }
 
-async function openDesignDetails(record) {
+async function openDesignDetails(record, source = "library") {
   clearDetailUrls();
   elements.detailTitle.textContent = record.label || record.fileName.replace(/\.pes$/i, "");
   elements.detailFile.textContent = record.relativePath;
@@ -164,7 +258,7 @@ async function openDesignDetails(record) {
   elements.stepList.replaceChildren();
   elements.designDialog.showModal();
 
-  if (!record.supported) {
+  if (source === "library" && !record.supported) {
     elements.detailMetadata.replaceChildren(
       detailMetadataRow("PES version", record.pesVersion ?? "Unknown"),
       detailMetadataRow("Source size", formatBytes(record.pesBytes)),
@@ -175,7 +269,9 @@ async function openDesignDetails(record) {
   }
 
   try {
-    const design = await window.ecsLibrary.details(record.id);
+    const design = source === "card"
+      ? await window.ecsCard.details(record.id)
+      : await window.ecsLibrary.details(record.id);
     if (!design || !elements.designDialog.open) return;
     elements.detailPreview.src = svgObjectUrl(design.previewSvg);
     elements.detailPreview.alt = `Color stitch preview for ${design.label || design.fileName}`;
@@ -388,11 +484,151 @@ async function queryCard(port) {
   return parseCardStatusResponse(await readExactly(port, 3));
 }
 
+class SerialByteReader {
+  constructor(reader) {
+    this.reader = reader;
+    this.pending = new Uint8Array();
+  }
+
+  async exactly(length, timeoutMs = 3500) {
+    while (this.pending.length < length) {
+      let timeout;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(new Error("The writer stopped responding during the card read.")), timeoutMs);
+      });
+      let result;
+      try {
+        result = await Promise.race([this.reader.read(), timeoutPromise]);
+      } finally {
+        clearTimeout(timeout);
+      }
+      if (result.done) throw new Error("The serial connection closed during the card read.");
+      const combined = new Uint8Array(this.pending.length + result.value.length);
+      combined.set(this.pending);
+      combined.set(result.value, this.pending.length);
+      this.pending = combined;
+    }
+    const result = this.pending.slice(0, length);
+    this.pending = this.pending.slice(length);
+    return result;
+  }
+}
+
+async function transferCardImage(port, maximumBlocks, onProgress) {
+  const reader = port.readable.getReader();
+  const writer = port.writable.getWriter();
+  const incoming = new SerialByteReader(reader);
+  const blocks = [];
+  let terminalAck = false;
+  try {
+    await writer.write(buildCommand(COMMAND.BEGIN_READ));
+    const begin = (await incoming.exactly(1))[0];
+    if (begin !== ECS.ACK) throw new Error(`The ECS rejected the read command (response ${begin.toString(16).padStart(2, "0")}).`);
+
+    for (let blockIndex = 0; blockIndex < maximumBlocks; blockIndex += 1) {
+      let accepted = false;
+      let control = ECS.ACK;
+      for (let attempt = 1; attempt <= 4 && !accepted; attempt += 1) {
+        await writer.write(Uint8Array.of(control));
+        const first = (await incoming.exactly(1))[0];
+        if (first === ECS.ACK) {
+          terminalAck = true;
+          break;
+        }
+        if (first === ECS.NAK) {
+          control = ECS.NAK;
+          continue;
+        }
+        const packet = new Uint8Array(ECS.BLOCK_PACKET_SIZE);
+        packet[0] = first;
+        packet.set(await incoming.exactly(ECS.BLOCK_PACKET_SIZE - 1), 1);
+        try {
+          const parsed = parseBlockPacket(packet);
+          if (parsed.blockIndex !== blockIndex) throw new Error("block index mismatch");
+          blocks.push(parsed.data);
+          accepted = true;
+        } catch {
+          control = ECS.NAK;
+        }
+      }
+      if (terminalAck) break;
+      if (!accepted) throw new Error(`Card block ${blockIndex.toLocaleString()} failed validation four times.`);
+      if (blocks.length === 1 || blocks.length % 8 === 0) onProgress(blocks.length, blocks.length * ECS.BLOCK_SIZE);
+    }
+    if (!terminalAck) await writer.write(Uint8Array.of(ECS.ACK));
+  } catch (error) {
+    try { await writer.write(Uint8Array.of(ECS.CAN)); } catch {}
+    try { await reader.cancel(); } catch {}
+    throw error;
+  } finally {
+    try { reader.releaseLock(); } catch {}
+    writer.releaseLock();
+  }
+
+  if (blocks.length === 0) throw new Error("The card returned no data blocks.");
+  const image = new Uint8Array(blocks.length * ECS.BLOCK_SIZE);
+  blocks.forEach((block, index) => image.set(block, index * ECS.BLOCK_SIZE));
+  return image;
+}
+
+async function readInsertedCard() {
+  if (!serialPort || cardReadInProgress) return;
+  cardReadInProgress = true;
+  elements.readCard.disabled = true;
+  elements.connectWriter.disabled = true;
+  elements.readProgress.hidden = false;
+  elements.readProgressLabel.textContent = "Starting read-only transfer…";
+  elements.readCard.textContent = "Reading card…";
+  updateWriter({ state: "connected", title: "Reading inserted card", detail: "No data on the card will be changed." });
+  let imageTransferred = false;
+  try {
+    const maximumBlocks = cardState.capacityBytes
+      ? Math.ceil(cardState.capacityBytes / ECS.BLOCK_SIZE)
+      : 8192;
+    const image = await transferCardImage(serialPort, maximumBlocks, (blocks, bytes) => {
+      elements.readProgressLabel.textContent = `${blocks.toLocaleString()} blocks · ${formatBytes(bytes)} read`;
+    });
+    imageTransferred = true;
+    elements.readProgressLabel.textContent = `Validating ${formatBytes(image.length)} image…`;
+    const card = await window.ecsCard.inspect(image);
+    renderCardContents(card);
+    cardState = {
+      ...cardState,
+      capacityBytes: card.capacityBytes,
+      existingBytes: card.occupiedBytes,
+    };
+    elements.cardKind.textContent = `${cardState.kind === "original" ? "Writable" : "Read-only"} · ${card.designCount} designs`;
+    updateWriter({
+      state: "connected",
+      title: "Card read complete",
+      detail: `${formatBytes(card.occupiedBytes)} used · ${formatBytes(card.freeBytes)} free · read-only operation`,
+    });
+    updateCapacity();
+  } catch (error) {
+    elements.saveCardBackup.disabled = !imageTransferred;
+    elements.cardDesignCount.textContent = "Read failed";
+    const message = document.createElement("p");
+    message.className = "empty-selection error-text";
+    message.textContent = imageTransferred
+      ? `${error.message} The exact raw card image is still available to save.`
+      : error.message;
+    elements.cardFileList.replaceChildren(message);
+    updateWriter({ state: "error", title: "Could not read card", detail: error.message });
+  } finally {
+    cardReadInProgress = false;
+    elements.readProgress.hidden = true;
+    elements.readCard.textContent = "Read inserted card";
+    elements.readCard.disabled = !serialPort;
+    elements.connectWriter.disabled = false;
+  }
+}
+
 async function disconnectWriter() {
   if (!serialPort) return;
   await serialPort.close().catch(() => {});
   serialPort = null;
   cardState = { capacityBytes: null, existingBytes: null, writable: false, kind: null };
+  elements.readCard.disabled = true;
   elements.connectWriter.textContent = "Connect writer…";
   elements.cardKind.textContent = "No card data";
   updateWriter({ state: "", title: "Writer port not opened", detail: "The cable may be connected. Open the serial port to check the ECS." });
@@ -403,6 +639,7 @@ async function openWriterPort(port) {
   elements.connectWriter.disabled = true;
   updateWriter({ state: "", title: "Opening writer…", detail: "Configuring the ECS serial connection." });
   try {
+    elements.readCard.disabled = true;
     await port.open({ baudRate: 9600, dataBits: 8, stopBits: 1, parity: "none", flowControl: "none" });
     serialPort = port;
     if (port.setSignals) {
@@ -421,6 +658,8 @@ async function openWriterPort(port) {
       const status = await queryCard(port);
       const ambiguousCapacity = status.rawStatus === 0x21;
       cardState = { capacityBytes: ambiguousCapacity ? null : status.capacityBytes, existingBytes: null, writable: status.writable, kind: status.kind };
+      cardState.rawStatus = status.rawStatus;
+      elements.readCard.disabled = false;
       elements.cardKind.textContent = ambiguousCapacity
         ? "Read-only · capacity unverified"
         : status.kind === "original" ? "Writable card" : status.kind === "read-only" ? "Read-only card" : "Unrecognized card";
@@ -490,6 +729,23 @@ elements.chooseFolder.addEventListener("click", chooseLibrary);
 elements.openFolder.addEventListener("click", chooseLibrary);
 elements.clearSelection.addEventListener("click", () => { selected.clear(); updateSelection(); void loadDesigns(); });
 elements.connectWriter.addEventListener("click", connectWriter);
+elements.readCard.addEventListener("click", readInsertedCard);
+elements.saveCardBackup.addEventListener("click", async () => {
+  try {
+    const savedPath = await window.ecsCard.saveBackup();
+    if (savedPath) updateWriter({ state: serialPort ? "connected" : "", title: "Card backup saved", detail: savedPath });
+  } catch (error) {
+    updateWriter({ state: "error", title: "Backup failed", detail: error.message });
+  }
+});
+elements.exportAllCard.addEventListener("click", async () => {
+  try {
+    const result = await window.ecsCard.exportAll();
+    if (result) updateWriter({ state: serialPort ? "connected" : "", title: `${result.count} designs exported`, detail: `${result.directory} · raw backup included` });
+  } catch (error) {
+    updateWriter({ state: "error", title: "Export failed", detail: error.message });
+  }
+});
 elements.portForm.addEventListener("submit", () => { window.ecsSerial.selectPort(elements.portList.value); elements.portDialog.close(); });
 elements.cancelPort.addEventListener("click", cancelPortSelection);
 elements.cancelPortX.addEventListener("click", cancelPortSelection);
@@ -504,6 +760,7 @@ elements.designDialog.addEventListener("click", (event) => {
 });
 
 updateSelection();
+renderCardContents(null);
 window.ecsSerial?.onPorts(showPorts);
 navigator.serial?.addEventListener("disconnect", (event) => { if (event.target === serialPort) void disconnectWriter(); });
 void detectGrantedWriter();
