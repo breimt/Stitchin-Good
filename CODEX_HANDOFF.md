@@ -95,7 +95,10 @@ validated and the ambiguous `0x21` status is resolved or independently proven sa
 - Added release-contract tests for the single universal macOS DMG and canonical
   tested/lipo-verified build workflow. The confirmed PL2303GT (`067B:23A3`) has
   current macOS support documentation, but enumeration still needs a real-Mac test.
-- The suite now passes 53 tests.
+- Extended the non-destructive PowerShell probe to take repeated status samples and
+  optionally save a timestamped JSON report. A safety-contract test proves the script
+  can emit only `CI`, `CV`, `CD`, and `CT` commands.
+- The suite now passes 54 tests.
 
 ## Resume here next session
 

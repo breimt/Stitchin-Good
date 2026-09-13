@@ -1,5 +1,9 @@
 [CmdletBinding()]
-param([string]$PortName = 'COM3')
+param(
+    [string]$PortName = 'COM3',
+    [ValidateRange(1, 20)][int]$StatusSamples = 3,
+    [string]$JsonOutputPath
+)
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -46,22 +50,42 @@ $port.WriteTimeout = 1500
 
 try {
     $port.Open()
+    $results = [Collections.Generic.List[object]]::new()
+    $probes = [Collections.Generic.List[object]]::new()
     foreach ($probe in @(
         @{ Name = 'identify'; Command = [char]'I' },
         @{ Name = 'version'; Command = [char]'V' },
-        @{ Name = 'device-data'; Command = [char]'D' },
-        @{ Name = 'card-status'; Command = [char]'T' }
-    )) {
+        @{ Name = 'device-data'; Command = [char]'D' }
+    )) { $probes.Add($probe) }
+    for ($sample = 1; $sample -le $StatusSamples; $sample++) {
+        $probes.Add(@{ Name = "card-status-$sample"; Command = [char]'T' })
+    }
+    foreach ($probe in $probes) {
         $port.DiscardInBuffer()
         $packet = New-CommandPacket $probe.Command
         $port.Write($packet, 0, $packet.Length)
         [byte[]]$response = @(Read-ResponseUntilIdle $port)
-        [PSCustomObject]@{
+        $result = [PSCustomObject]@{
             probe = $probe.Name
             commandHex = ($packet | ForEach-Object { $_.ToString('X2') }) -join ' '
             responseBytes = $response.Length
             responseHex = ($response | ForEach-Object { $_.ToString('X2') }) -join ' '
         }
+        $results.Add($result)
+        $result
+    }
+    if ($JsonOutputPath) {
+        $parent = Split-Path -Parent ([IO.Path]::GetFullPath($JsonOutputPath))
+        if (-not (Test-Path -LiteralPath $parent -PathType Container)) {
+            throw "Output directory does not exist: $parent"
+        }
+        [PSCustomObject]@{
+            capturedUtc = [DateTime]::UtcNow.ToString('o')
+            port = $PortName
+            baudRate = 9600
+            operation = 'read-only-identification'
+            results = $results
+        } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $JsonOutputPath -Encoding utf8
     }
 }
 finally {

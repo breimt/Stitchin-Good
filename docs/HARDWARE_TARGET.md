@@ -42,3 +42,6 @@ to fail closed and will not send erase/write commands for `0x21`.
    require the same image hash before considering the exact-backup restore test.
 
 No unattended software step should move, power-cycle, erase, or write the card.
+`scripts/probe-ecs.ps1 -StatusSamples 5 -JsonOutputPath switch-off.json` records the
+non-destructive side of this comparison. Its command allowlist is enforced by an
+automated test and contains only `CI`, `CV`, `CD`, and `CT`.
