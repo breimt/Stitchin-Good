@@ -12,6 +12,15 @@ Use that section to state the specific action, information, hardware, or decisio
 needed from the user to keep the project moving. If nothing is currently required,
 say that explicitly and state when user involvement will next be needed.
 
+## Physical-card authorization
+
+On 2026-09-13, the user confirmed that the card currently inserted in the ECS is a
+genuine rewritable card and explicitly authorized overwriting its current contents.
+The verified 128 KiB read-only capture remains the recovery baseline. This permission
+removes the ownership/content blocker, but it does not bypass the engineering safety
+gates: do not send erase/write commands until the write package is structurally
+validated and the ambiguous `0x21` status is resolved or independently proven safe.
+
 ## 2026-09-13 UI and Mac-transport update
 
 - Replaced the cream/green promotional interface with a compact VS Code-style dark
